@@ -138,23 +138,21 @@ the default:
 'split' has no effect when 'enable-normalization-flatten-containers' normalization enabled.
 ....
 
-That is accurate for an eager split — a container with a single child is flattened away again the
-moment it is created. i3 doesn't split eagerly either. `split h` in i3 marks the focused window, and
-the *next* window to open beside it goes into a new container.
+The complaint is real: that normalization dissolves any container holding a single child, so a
+freshly split container would be flattened away before anything could join it.
 
-This fork implements that. Under the flatten normalization, `split` records the requested
-orientation on the focused window and returns success without touching the tree. When the next
-window opens beside it, both are placed into a fresh container with that orientation — which has two
-children and therefore survives normalization.
+This fork creates the container immediately anyway, the way i3 does, and marks it as deliberate so
+the normalization leaves it alone while it holds a child. The split is therefore a real container
+you can put windows into straight away:
 
 [source,bash]
 ----
-aerospace split vertical    # then open a new window: it lands below, not beside
+aerospace split vertical    # the focused window is now alone in a vertical container
+aerospace move left         # from the tile beside it: stacks below, inside the split
 ----
 
-The mark is looked up across the workspace when the new window arrives, rather than assumed to be
-the most recently used window. Opening a window activates its application, which can move the MRU
-off the marked window before the new window is ever registered.
+New windows opening beside the split window land inside it too, since they are placed next to the
+most recently used window and that window is now inside the container.
 
 A container created by `split` also keeps the orientation you named, even when
 `enable-normalization-opposite-orientation-for-nested-containers` is on. That normalization flips a
@@ -162,7 +160,10 @@ nested container to the opposite of its parent, which would make `split horizont
 horizontal parent silently mean vertical — the command would do the opposite of what it says.
 Containers created any other way are still normalized as before.
 
-With `enable-normalization-flatten-containers = false`, `split` keeps upstream's eager behavior.
+Splitting from inside a tab divides the whole tab group rather than nesting a split within the
+focused tab. Nesting would shrink only the visible tab and leave its siblings at the container's
+full size. i3 reaches the group with `focus parent` first; AeroSpace has no equivalent, so the group
+is split directly.
 
 `join-with` is unchanged and is still the more direct way to put existing windows under a common
 parent.

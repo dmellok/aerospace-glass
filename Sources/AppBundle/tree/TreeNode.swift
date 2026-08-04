@@ -18,14 +18,6 @@ open class TreeNode: Equatable, AeroAny {
     // - move-mouse command
     // - focus-follows-mouse
     var lastAppliedLayoutPhysicalRect: Rect? = nil // with real inner gaps
-    /// i3's `split` semantics: this node is marked, and the *next* window to open beside it is put
-    /// into a fresh container of this orientation instead of joining the current parent. Cleared as
-    /// soon as it is consumed.
-    ///
-    /// The mark lives on ``TreeNode`` rather than ``Window`` so that a whole tabbed container can
-    /// carry it: splitting from inside a tab should divide the tab group, not nest a split within
-    /// one of its tabs. See ``SplitCommand``.
-    var pendingSplitOrientation: Orientation? = nil
     final var unboundStacktrace: String? = nil
     var isBound: Bool { parent != nil } // todo drop, once https://github.com/nikitabobko/AeroSpace/issues/1215 is fixed
 

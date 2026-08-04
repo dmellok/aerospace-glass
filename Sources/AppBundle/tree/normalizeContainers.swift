@@ -9,9 +9,10 @@ extension Workspace {
 
 extension TilingContainer {
     @MainActor fileprivate func unbindEmptyAndAutoFlatten() {
-        // A tabbed container is created deliberately by the user and must survive with a single tab,
-        // the way it does in i3. Flattening it would delete the tab bar the moment it was made.
-        if layout == .tabbed && !children.isEmpty {
+        // Containers the user made on purpose — tab groups and splits — must survive holding a
+        // single child, the way they do in i3. Flattening would delete the tab bar the moment it
+        // was created, or dissolve a fresh split before a window could be moved into it.
+        if (layout == .tabbed || isUserDefinedSplit) && !children.isEmpty {
             for child in children {
                 (child as? TilingContainer)?.unbindEmptyAndAutoFlatten()
             }

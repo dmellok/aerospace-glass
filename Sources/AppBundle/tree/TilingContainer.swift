@@ -13,10 +13,15 @@ final class TilingContainer: TreeNode, NonLeafTreeNodeObject { // todo consider 
     /// Set by the layout pass for `tabbed` containers, consumed by ``GlassOverlayManager`` to place
     /// the tab bar. nil for every other layout, and for containers too short to fit a bar.
     var lastAppliedTabBarRect: Rect? = nil
-    /// The user named this container's orientation with `split`, so the opposite-orientation
-    /// normalization must leave it alone. Without this, `split horizontal` inside a horizontal
-    /// parent is silently flipped to vertical, and the command means the opposite of what it says.
-    var hasUserDefinedOrientation: Bool = false
+    /// The user created this container with `split`, so the normalizations must leave it alone:
+    ///
+    /// - It keeps the orientation they named. Otherwise the opposite-orientation normalization
+    ///   flips `split horizontal` inside a horizontal parent to vertical, and the command does the
+    ///   opposite of what it says.
+    /// - It is not flattened while it still holds a child. Otherwise the container holding the
+    ///   single just-split window is dissolved before anything can be moved into it, and `split`
+    ///   appears to do nothing at all.
+    var isUserDefinedSplit: Bool = false
 
     @MainActor
     init(parent: NonLeafTreeNodeObject, adaptiveWeight: CGFloat, _ orientation: Orientation, _ layout: Layout, index: Int) {
@@ -58,7 +63,7 @@ extension TilingContainer {
     }
 
     func normalizeOppositeOrientationForNestedContainers() {
-        if !hasUserDefinedOrientation, layout != .tabbed,
+        if !isUserDefinedSplit, layout != .tabbed,
            orientation == (parent as? TilingContainer)?.orientation
         {
             _orientation = orientation.opposite

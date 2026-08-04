@@ -53,40 +53,64 @@ final class SplitCommandTest: XCTestCase {
         ]))
     }
 
-    /// With the flatten normalization on (the default), `split` must not fail and must not restructure
-    /// the tree eagerly. It records i3's intent, which the next window to open beside it consumes.
-    func testSplitIsDeferredWhenFlattenNormalizationIsEnabled() async {
+    /// The split container is created immediately and must survive the flatten normalization, which
+    /// would otherwise dissolve it while it still holds only the split window — leaving nothing for
+    /// a second window to be moved into.
+    func testSplitSurvivesFlattenNormalization() async {
         config.enableNormalizationFlattenContainers = true
-        let window1 = TestWindow.new(id: 1, parent: Workspace.get(byName: name).rootTilingContainer)
-        assertEquals(window1.focusWindow(), true)
-        let root = Workspace.get(byName: name).rootTilingContainer
+        let workspace = Workspace.get(byName: name)
+        let root = workspace.rootTilingContainer
+        let window1 = TestWindow.new(id: 1, parent: root)
         TestWindow.new(id: 2, parent: root)
+        assertEquals(window1.focusWindow(), true)
 
         let result = await parseCommand("split vertical").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        workspace.normalizeContainers()
 
         assertEquals(result.exitCode.rawValue, 0)
-        assertEquals(window1.pendingSplitOrientation, .v)
-        // The tree is untouched until the next window actually arrives
-        assertEquals(root.layoutDescription, .h_tiles([.window(1), .window(2)]))
+        assertEquals(root.layoutDescription, .h_tiles([.v_tiles([.window(1)]), .window(2)]))
     }
 
-    /// Splitting from inside a tab must mark the whole tab group, not the focused tab. Marking the
-    /// tab would nest the split inside it, leaving the other tabs at the container's full size while
-    /// only the visible one shrank.
-    func testSplitFromInsideATabMarksTheWholeGroup() async {
+    /// A window moved into a fresh split stacks inside it rather than landing beside it.
+    func testWindowMovedIntoASplitStacksInsideIt() async {
         config.enableNormalizationFlattenContainers = true
-        let root = Workspace.get(byName: name).rootTilingContainer
+        let workspace = Workspace.get(byName: name)
+        let window1 = TestWindow.new(id: 1, parent: workspace.rootTilingContainer)
+        let window2 = TestWindow.new(id: 2, parent: workspace.rootTilingContainer)
+        TestWindow.new(id: 3, parent: workspace.rootTilingContainer)
+        assertEquals(window1.focusWindow(), true)
+        await parseCommand("split vertical").cmdOrDie.run(.defaultEnv, .emptyStdin)
+
+        assertEquals(window2.focusWindow(), true)
+        await parseCommand("move left").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        workspace.normalizeContainers()
+
+        assertEquals(
+            workspace.rootTilingContainer.layoutDescription,
+            .h_tiles([.v_tiles([.window(1), .window(2)]), .window(3)]),
+        )
+    }
+
+    /// Splitting from inside a tab divides the whole tab group. Splitting the focused tab instead
+    /// would nest the split within it, leaving the other tabs at the container's full size while
+    /// only the visible one shrank.
+    func testSplitFromInsideATabSplitsTheWholeGroup() async {
+        config.enableNormalizationFlattenContainers = true
+        let workspace = Workspace.get(byName: name)
+        let root = workspace.rootTilingContainer
         let tabbed = TilingContainer(parent: root, adaptiveWeight: 1, .h, .tabbed, index: INDEX_BIND_LAST)
         let tab1 = TestWindow.new(id: 1, parent: tabbed)
-        let tab2 = TestWindow.new(id: 2, parent: tabbed)
+        TestWindow.new(id: 2, parent: tabbed)
         TestWindow.new(id: 3, parent: root)
         assertEquals(tab1.focusWindow(), true)
 
         await parseCommand("split vertical").cmdOrDie.run(.defaultEnv, .emptyStdin)
+        workspace.normalizeContainers()
 
-        assertEquals(tabbed.pendingSplitOrientation, .v)
-        assertEquals(tab1.pendingSplitOrientation, nil)
-        assertEquals(tab2.pendingSplitOrientation, nil)
+        // The tab group as a whole sits inside the new split, with both tabs intact
+        assertEquals(tabbed.parent as? TilingContainer !== root, true)
+        assertEquals(tabbed.children.count, 2)
+        assertEquals((tabbed.parent as? TilingContainer)?.orientation, Orientation.v)
     }
 
     func testToggleOrientation() async {

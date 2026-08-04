@@ -108,7 +108,7 @@ final class TreeNodeTest: XCTestCase {
         root.changeOrientation(.h)
         TestWindow.new(id: 1, parent: root)
         let nested = TilingContainer.newHTiles(parent: root, adaptiveWeight: 1)
-        nested.hasUserDefinedOrientation = userDefined
+        nested.isUserDefinedSplit = userDefined
         TestWindow.new(id: 2, parent: nested)
         TestWindow.new(id: 3, parent: nested)
 
