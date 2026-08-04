@@ -1,31 +1,202 @@
-# AeroSpace Beta [![Build](https://github.com/nikitabobko/AeroSpace/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/nikitabobko/AeroSpace/actions/workflows/build.yml)
+# AeroSpace Glass
 
 <img src="./resources/Assets.xcassets/AppIcon.appiconset/icon.png" width="40%" align="right">
 
-AeroSpace is an i3-like tiling window manager for macOS
+AeroSpace is an i3-like tiling window manager for macOS. This fork adds an i3-style tabbed layout
+with Liquid Glass tab bars, optional window borders, and i3-compatible splitting.
 
 ## About this fork
 
-This is a fork of [nikitabobko/AeroSpace](https://github.com/nikitabobko/AeroSpace) that adds the
-window decorations upstream deliberately leaves out, plus closer i3 parity for `split`.
-Everything else tracks upstream. See [`docs/glass.adoc`](docs/glass.adoc) for the full reference.
+A fork of [nikitabobko/AeroSpace](https://github.com/nikitabobko/AeroSpace) that adds the window
+decorations upstream deliberately leaves out, and closes the remaining gaps between AeroSpace's
+`split` and i3's. Everything else tracks upstream unchanged.
 
-- **`tabbed` layout.** A third tiling layout beside `tiles` and `accordion`. It stacks the
-  container's windows and reserves a strip above them for a real tab bar, which is what i3's tabbed
-  layout does and what accordion only hints at with padding slivers. `aerospace layout tabbed`.
-- **Glass tab bars.** The reserved strip is drawn with macOS 26 Liquid Glass, one tab per window
-  with its app icon and title. Clicking a tab focuses that window without activating AeroSpace.
-- **Glass window borders.** An optional border around tiled windows to show which one has focus.
-  Unlike running [JankyBorders](https://github.com/FelixKratz/JankyBorders) alongside AeroSpace,
-  this one knows about AeroSpace's workspace model, so it doesn't leave stray borders piled in the
-  screen corner where hidden workspaces park their windows. Off by default.
-- **i3-compatible `split`.** Upstream's `split` fails outright under the default
-  `enable-normalization-flatten-containers`. Here it instead records i3's intent and the next window
-  to open beside the marked one lands in a new container of the requested orientation.
+Upstream declines window decorations on purpose — see
+[#85](https://github.com/nikitabobko/AeroSpace/issues/85) for borders and the project's
+"[non-values](https://github.com/nikitabobko/AeroSpace#non-values)" on ricing — and recommends
+running [JankyBorders](https://github.com/FelixKratz/JankyBorders) alongside it instead. This fork
+takes the other path and draws them in-process, which turns out to matter (see
+[Why in-process](#why-in-process)).
 
-Decorations are configured under the `glass.*` config keys and use only public AppKit API — no
-SkyLight, no Screen Recording permission. On macOS 25 and earlier they fall back to the classic
-blur materials.
+Full reference: [`docs/glass.adoc`](docs/glass.adoc).
+
+---
+
+### The `tabbed` layout
+
+A third tiling layout beside `tiles` and `accordion`. Every window in the container gets the same
+rect, minus a strip reserved at the top for a tab bar, so only the visible one is on top.
+
+```bash
+aerospace layout tabbed         # tab up the focused window
+aerospace layout tiles tabbed   # toggle
+```
+
+This is i3's tabbed layout. Upstream maps i3's tabbed onto `h_accordion`, which offsets each window
+so a sliver of its neighbour peeks out — it never shows titles, and you can't tell how many windows
+are stacked. Upstream's own [#24](https://github.com/nikitabobko/AeroSpace/issues/24) asks for a
+`stack` layout with indicators for exactly this reason.
+
+Behaviour worth knowing:
+
+- **It scopes to the focused window**, not its whole parent. Tabbing up a window in the corner puts
+  a bar over *that tile* rather than swallowing the workspace. The window is wrapped in a new tabbed
+  container holding just itself, showing one tab.
+- **Windows move in and out** with the ordinary `move` command. A tabbed container is a terminal
+  move-in target, so a window moved into it becomes another tab instead of descending into whatever
+  the visible tab holds.
+- **A tab group is always horizontal.** Tabs run left to right in the bar, so `focus left`/`right`
+  step between them and then out of the group, while `focus up`/`down` leave directly — the same
+  split i3 draws between its tabbed and stacked layouts. This is derived, not stored, so no creation
+  path or normalization can get it wrong.
+- **It survives `enable-normalization-flatten-containers`.** Without an exemption, a container
+  holding a single tab would be dissolved the instant it was created.
+- **Every tab resizes with the container**, including the hidden ones. Only resizing the visible tab
+  leaves the others overflowing their tile the moment the container shrinks.
+
+### Glass decorations
+
+Drawn with macOS 26 Liquid Glass (`NSGlassEffectView` / SwiftUI `glassEffect`), falling back to
+`NSVisualEffectView` blur materials on macOS 25 and earlier.
+
+**Tab bars** — one blurred strip per tab group, one tab per window with its app icon and title. The
+tabs form a value ramp against the strip: unselected a shade darker, selected the lightest thing in
+the bar. Label colors are derived from each tab's fill luminance rather than the system appearance,
+because a decoration floats over arbitrary application content and the light/dark setting says
+nothing about what a label will actually sit on. Clicking a tab focuses that window without
+activating AeroSpace.
+
+**Borders** — an optional outline around each tiled window showing which has focus. Off by default,
+since it costs one overlay panel per visible window.
+
+<a name="why-in-process"></a>
+**Why in-process.** AeroSpace implements virtual workspaces by parking the windows of inactive
+workspaces in a screen corner. A border tool that doesn't know that — JankyBorders included — draws
+for those parked windows too, which is the familiar pile of stray borders in the corner of the
+screen. Because these decorations read AeroSpace's own tree, they simply don't draw them. They also
+know which tab of a group is visible, so a tab group gets one border rather than N stacked ones.
+
+No private APIs and no Screen Recording permission: the window server composites the blur, so it
+picks up other applications' windows through public AppKit alone.
+
+### i3-compatible `split`
+
+Upstream's `split` refuses to run at all under the default
+`enable-normalization-flatten-containers`:
+
+```
+'split' has no effect when 'enable-normalization-flatten-containers' normalization enabled.
+```
+
+The complaint is real — that normalization dissolves any container holding a single child, so a
+freshly split container would vanish before anything could join it. This fork creates the container
+immediately anyway, the way i3 does, and marks it deliberate so the normalization leaves it alone
+while it holds a child:
+
+```bash
+aerospace split vertical   # the focused window is now alone in a vertical container
+aerospace move left        # from the tile beside it: stacks below, inside the split
+```
+
+New windows opening beside the split window land inside it too.
+
+Two further fixes, both cases where the command did the opposite of what it says:
+
+- **A split keeps the orientation you named.** `enable-normalization-opposite-orientation-for-nested-containers`
+  flips a nested container to the opposite of its parent, which silently turned `split horizontal`
+  inside a horizontal parent into a vertical split. Containers created any other way still normalize
+  as before.
+- **Splitting from inside a tab divides the whole tab group**, rather than nesting a split within
+  the focused tab — which would shrink only the visible tab and leave its siblings at full size. i3
+  reaches the group with `focus parent` first; AeroSpace has no equivalent, so the group is split
+  directly.
+
+---
+
+### Configuration
+
+All keys optional, all under `glass.*`. Sizes are whole points (AeroSpace's TOML parser has no float
+type). Colors accept `#RRGGBB`, `#RRGGBBAA`, or JankyBorders-style `0xAARRGGBB`, so a color can be
+pasted straight out of an existing `borders` setup.
+
+```toml
+glass.borders.enabled =        false   # draw borders at all
+glass.borders.width =          3
+glass.borders.corner-radius =  11      # macOS 26 windows are ~11pt rounded
+glass.borders.padding =        2       # outward offset, so the stroke hugs rather than covers
+glass.borders.show-inactive =  true
+glass.borders.active-color =   '#8CC7FF'
+glass.borders.inactive-color = '#FFFFFF2E'
+
+glass.tabs.enabled =       true
+glass.tabs.height =        30          # height of the reserved strip
+glass.tabs.spacing =       4           # gap between the strip and the windows below
+glass.tabs.corner-radius = 10
+glass.tabs.font-size =     12
+glass.tabs.show-icons =    true
+glass.tabs.bar-tint =      '#00000038'  # the ramp: dim strip,
+glass.tabs.inactive-tint = '#00000047'  # unselected a shade darker,
+glass.tabs.active-tint =   '#FFFFFFD1'  # selected lightest
+```
+
+> **TOML gotcha:** these are dotted keys, so they must appear *before* the first `[table]` header in
+> your config. Placed after one they become keys of that table and the config fails to parse.
+
+An i3-style keybinding set:
+
+```toml
+[mode.main.binding]
+alt-period = 'layout tabbed tiles'   # toggle a tab group
+alt-h = 'split horizontal'
+alt-v = 'split vertical'
+alt-left = 'focus left'              # steps through tabs, then out of the group
+alt-right = 'focus right'
+alt-shift-left = 'move left'         # moves a window into or out of a tab group
+alt-shift-right = 'move right'
+```
+
+### Building and installing
+
+Requires macOS 26 for Liquid Glass (it builds and runs on macOS 13+, using blur materials instead).
+
+```bash
+swift build -c release --product AeroSpaceApp
+swift build -c release --product aerospace
+```
+
+Upstream's `build-release.sh` additionally wants bash 5, Ruby, Rust and a signing certificate. To
+install without those, assemble a bundle from an existing AeroSpace.app — keeping its `Info.plist`,
+icon and assets — replace `Contents/MacOS/AeroSpace` with the binary above, re-sign ad-hoc with
+`codesign --force --deep -s -`, and put the `aerospace` CLI on your `PATH`. Keep the
+`bobko.aerospace` bundle identifier: the CLI socket and your Accessibility grant both key off it.
+
+### Compatibility
+
+The new config keys and layout are fork-only. Stock AeroSpace rejects `layout tabbed` outright:
+
+```
+ERROR: Can't parse 'tabbed'
+```
+
+so a config using `tabbed`, the `glass.*` keys, or `split` under the flatten normalization will not
+load there. Keep that in mind before switching back to a release build.
+
+### Relationship to upstream
+
+`main` tracks upstream; the work lives on `glass`. To pull upstream changes:
+
+```bash
+git fetch upstream && git rebase upstream/main
+```
+
+The fork touches the tree model (`TilingContainer`, `normalizeContainers`), the layout pass, and
+adds `Sources/AppBundle/ui/glass/`. Upstream issue
+[#1215](https://github.com/nikitabobko/AeroSpace/issues/1215) proposes rewriting `TreeNode` as an
+immutable persistent tree, which would conflict heavily.
+
+Licensed MIT, same as upstream. Copyright (c) 2023 Nikita Bobko.
+
+---
 
 Videos:
 - [YouTube 91 sec Demo](https://www.youtube.com/watch?v=UOl7ErqWbrk)
