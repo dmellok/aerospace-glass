@@ -9,6 +9,14 @@ extension Workspace {
 
 extension TilingContainer {
     @MainActor fileprivate func unbindEmptyAndAutoFlatten() {
+        // A tabbed container is created deliberately by the user and must survive with a single tab,
+        // the way it does in i3. Flattening it would delete the tab bar the moment it was made.
+        if layout == .tabbed && !children.isEmpty {
+            for child in children {
+                (child as? TilingContainer)?.unbindEmptyAndAutoFlatten()
+            }
+            return
+        }
         if let child = children.singleOrNil(), config.enableNormalizationFlattenContainers && (child is TilingContainer || !isRootContainer) {
             child.unbindFromParent()
             let mru = parent?.mostRecentChild

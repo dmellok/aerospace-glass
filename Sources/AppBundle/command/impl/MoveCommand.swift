@@ -161,6 +161,10 @@ extension TilingTreeNodeCases {
         switch self {
             case .window:
                 self
+            // A tabbed container is a terminal target: a window moved into it becomes a new tab
+            // rather than descending into whatever the visible tab currently holds.
+            case .tilingContainer(let container) where container.layout == .tabbed:
+                .tilingContainer(container)
             case .tilingContainer(let container) where container.orientation == orientation:
                 .tilingContainer(container)
             case .tilingContainer(let container):

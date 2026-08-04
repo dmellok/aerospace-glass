@@ -162,7 +162,11 @@ final class GlassOverlayManager {
             cornerRadius: CGFloat(cfg.cornerRadius),
             fontSize: CGFloat(cfg.fontSize),
             showIcons: cfg.showIcons,
+            barTint: Color(cfg.barTint.toNSColor),
+            inactiveTint: Color(cfg.inactiveTint.toNSColor),
             activeTint: Color(cfg.activeTint.toNSColor),
+            activeForeground: Color(cfg.activeTint.legibleForeground),
+            inactiveForeground: Color(cfg.inactiveTint.legibleForeground),
             onSelect: { windowId in
                 Task.startUnstructured { @MainActor in
                     await focusWindowFromTabBar(windowId)

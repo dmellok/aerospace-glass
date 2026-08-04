@@ -12,9 +12,26 @@ so only the most recently used window is visible and the others sit behind it.
 
 [source,bash]
 ----
-aerospace layout tabbed          # turn the focused window's container into a tabbed one
+aerospace layout tabbed          # tab up the focused window
 aerospace layout tiles tabbed    # toggle between tiles and tabbed
 ----
+
+Unlike the other layouts, `tabbed` scopes to the *focused window* rather than retiling its whole
+parent: tabbing up a window in the corner of the screen puts a tab bar over that tile, it doesn't
+swallow the entire workspace. The window is wrapped in a new tabbed container holding just itself,
+showing a single tab.
+
+Windows are then moved in and out with the ordinary `move` command — moving a window into a tabbed
+container adds it as another tab instead of descending into whatever the visible tab holds:
+
+[source,bash]
+----
+aerospace move left     # from the tile beside it: becomes a new tab
+aerospace move right    # from inside the container: moves back out
+----
+
+A tabbed container is exempt from `enable-normalization-flatten-containers`. Without that exemption
+a container holding a single tab would be flattened away the instant it was created.
 
 This is i3's tabbed layout.
 Upstream maps i3's tabbed layout onto `h_accordion`, which keeps every window slightly offset so a
@@ -68,7 +85,13 @@ glass.tabs.spacing =       4           # gap between the strip and the windows b
 glass.tabs.corner-radius = 10
 glass.tabs.font-size =     12
 glass.tabs.show-icons =    true        # show each window's app icon in its tab
-glass.tabs.active-tint =   '#8CC7FF8C'
+
+# The three fills form a value ramp: the strip is dim, unselected tabs sit a shade darker against
+# it, and the selected tab is the lightest thing in the bar. Label colors are derived from whichever
+# fill a tab uses, so text stays legible if you retune them.
+glass.tabs.bar-tint =      '#00000038'
+glass.tabs.inactive-tint = '#00000047'
+glass.tabs.active-tint =   '#FFFFFFD1'
 ----
 
 == How it is drawn
@@ -116,6 +139,16 @@ children and therefore survives normalization.
 ----
 aerospace split vertical    # then open a new window: it lands below, not beside
 ----
+
+The mark is looked up across the workspace when the new window arrives, rather than assumed to be
+the most recently used window. Opening a window activates its application, which can move the MRU
+off the marked window before the new window is ever registered.
+
+A container created by `split` also keeps the orientation you named, even when
+`enable-normalization-opposite-orientation-for-nested-containers` is on. That normalization flips a
+nested container to the opposite of its parent, which would make `split horizontal` inside a
+horizontal parent silently mean vertical — the command would do the opposite of what it says.
+Containers created any other way are still normalized as before.
 
 With `enable-normalization-flatten-containers = false`, `split` keeps upstream's eager behavior.
 

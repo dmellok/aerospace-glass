@@ -225,23 +225,36 @@ private func unbindAndGetBindingDataForNewWindow(_ windowId: UInt32, _ macApp: M
 private func unbindAndGetBindingDataForNewTilingWindow(_ workspace: Workspace, window: Window?) -> BindingData {
     window?.unbindFromParent() // It's important to unbind to get correct data from below
     let mruWindow = workspace.mostRecentWindowRecursive
+
+    // i3-like deferred split: a preceding 'split' command marked a window, so wrap it in a new
+    // container and drop the incoming window in beside it. The container has two children, so the
+    // flatten normalization leaves it alone.
+    //
+    // The marked window is searched for across the workspace rather than assumed to be the MRU:
+    // opening a window activates its application, which can move the MRU off the marked window
+    // before the new window is ever registered.
+    let markedWindow = mruWindow?.pendingSplitOrientation != nil
+        ? mruWindow
+        : workspace.allLeafWindowsRecursive.first { $0.pendingSplitOrientation != nil }
+    if let markedWindow,
+       let orientation = markedWindow.pendingSplitOrientation,
+       let tilingParent = markedWindow.parent as? TilingContainer
+    {
+        markedWindow.pendingSplitOrientation = nil
+        let data = markedWindow.unbindFromParent()
+        let newParent = TilingContainer(
+            parent: tilingParent,
+            adaptiveWeight: data.adaptiveWeight,
+            orientation,
+            .tiles,
+            index: data.index,
+        )
+        newParent.hasUserDefinedOrientation = true
+        markedWindow.bind(to: newParent, adaptiveWeight: WEIGHT_AUTO, index: 0)
+        return BindingData(parent: newParent, adaptiveWeight: WEIGHT_AUTO, index: 1)
+    }
+
     if let mruWindow, let tilingParent = mruWindow.parent as? TilingContainer {
-        // i3-like deferred split: a preceding 'split' command marked this window, so wrap it in a
-        // new container and drop the incoming window in beside it. The container has two children,
-        // so the flatten normalization leaves it alone.
-        if let orientation = mruWindow.pendingSplitOrientation {
-            mruWindow.pendingSplitOrientation = nil
-            let data = mruWindow.unbindFromParent()
-            let newParent = TilingContainer(
-                parent: tilingParent,
-                adaptiveWeight: data.adaptiveWeight,
-                orientation,
-                .tiles,
-                index: data.index,
-            )
-            mruWindow.bind(to: newParent, adaptiveWeight: WEIGHT_AUTO, index: 0)
-            return BindingData(parent: newParent, adaptiveWeight: WEIGHT_AUTO, index: 1)
-        }
         return BindingData(
             parent: tilingParent,
             adaptiveWeight: WEIGHT_AUTO,

@@ -22,6 +22,8 @@ private let glassTabsParser: [String: any ParserProtocol<GlassTabsConfig>] = [
     "corner-radius": Parser(\.cornerRadius, parsePoints),
     "font-size": Parser(\.fontSize, parsePoints),
     "show-icons": Parser(\.showIcons, parseBool),
+    "bar-tint": Parser(\.barTint, parseGlassColor),
+    "inactive-tint": Parser(\.inactiveTint, parseGlassColor),
     "active-tint": Parser(\.activeTint, parseGlassColor),
 ]
 

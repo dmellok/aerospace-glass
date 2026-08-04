@@ -99,7 +99,11 @@ struct GlassTabsConfig: ConvenienceMutable {
     var fontSize: Double = 12
     /// Show each window's app icon in its tab
     var showIcons: Bool = true
-    var activeTint: GlassColor = GlassColor(red: 0.55, green: 0.78, blue: 1.0, alpha: 0.55)
+    /// The three fills form a value ramp: the strip is dim, unselected tabs sit a shade darker
+    /// against it, and the selected tab is the lightest thing in the bar.
+    var barTint: GlassColor = GlassColor(red: 0, green: 0, blue: 0, alpha: 0.22)
+    var inactiveTint: GlassColor = GlassColor(red: 0, green: 0, blue: 0, alpha: 0.28)
+    var activeTint: GlassColor = GlassColor(red: 1, green: 1, blue: 1, alpha: 0.82)
 }
 
 struct GlassColor: Equatable, Sendable {

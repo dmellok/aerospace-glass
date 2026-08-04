@@ -1,4 +1,5 @@
 @testable import AppBundle
+import Common
 import XCTest
 
 @MainActor
@@ -85,5 +86,33 @@ final class TreeNodeTest: XCTestCase {
         config.enableNormalizationFlattenContainers = true
         workspace.normalizeContainers()
         XCTAssertTrue(workspace.rootTilingContainer.children.singleOrNil() is TestWindow)
+    }
+
+    /// A nested container the user didn't ask for is flipped to the opposite orientation.
+    func testNormalizeOppositeOrientation_flipsByDefault() {
+        assertEquals(nestedContainerOrientationAfterNormalization(userDefined: false), Orientation.v)
+    }
+
+    /// ...but one created by 'split' keeps the orientation the user named, otherwise
+    /// `split horizontal` inside a horizontal parent silently means vertical.
+    func testNormalizeOppositeOrientation_respectsUserDefinedOrientation() {
+        assertEquals(nestedContainerOrientationAfterNormalization(userDefined: true), Orientation.h)
+    }
+
+    /// Builds a horizontal container nested directly inside the horizontal root, normalizes, and
+    /// reports the orientation the nested container ended up with.
+    private func nestedContainerOrientationAfterNormalization(userDefined: Bool) -> Orientation {
+        config.enableNormalizationOppositeOrientationForNestedContainers = true
+        let workspace = Workspace.get(byName: name)
+        let root = workspace.rootTilingContainer
+        root.changeOrientation(.h)
+        TestWindow.new(id: 1, parent: root)
+        let nested = TilingContainer.newHTiles(parent: root, adaptiveWeight: 1)
+        nested.hasUserDefinedOrientation = userDefined
+        TestWindow.new(id: 2, parent: nested)
+        TestWindow.new(id: 3, parent: nested)
+
+        workspace.normalizeContainers()
+        return nested.orientation
     }
 }

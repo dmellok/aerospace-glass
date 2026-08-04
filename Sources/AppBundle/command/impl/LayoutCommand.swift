@@ -52,6 +52,25 @@ struct LayoutCommand: Command {
             case .accordion:
                 return changeTilingLayout(io, targetLayout: .accordion, targetOrientation: nil, node: node)
             case .tabbed:
+                // Unlike the other layouts, 'tabbed' scopes to the focused window rather than
+                // retiling its whole parent: tabbing up a window in the corner should put a tab bar
+                // over that tile, not swallow the entire workspace. Windows are then moved into the
+                // container to become extra tabs.
+                if !args.root, let window = target.windowOrNil,
+                   case .tilingContainer(let parent) = node,
+                   parent.layout != .tabbed, parent.children.count > 1
+                {
+                    let data = window.unbindFromParent()
+                    let tabbed = TilingContainer(
+                        parent: parent,
+                        adaptiveWeight: data.adaptiveWeight,
+                        parent.orientation,
+                        .tabbed,
+                        index: data.index,
+                    )
+                    window.bind(to: tabbed, adaptiveWeight: WEIGHT_AUTO, index: 0)
+                    return .succ
+                }
                 return changeTilingLayout(io, targetLayout: .tabbed, targetOrientation: nil, node: node)
             case .tiles:
                 return changeTilingLayout(io, targetLayout: .tiles, targetOrientation: nil, node: node)

@@ -102,7 +102,11 @@ glass.tabs.spacing =       4
 glass.tabs.corner-radius = 10
 glass.tabs.font-size =     12
 glass.tabs.show-icons =    true
-glass.tabs.active-tint =   '#8CC7FF8C'
+# The three fills form a value ramp: dim strip, unselected tabs a shade darker, selected lightest.
+# Label colors are derived from these, so text stays legible if you retune them.
+glass.tabs.bar-tint =      '#00000038'
+glass.tabs.inactive-tint = '#00000047'
+glass.tabs.active-tint =   '#FFFFFFD1'
 
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes

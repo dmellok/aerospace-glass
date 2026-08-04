@@ -30,6 +30,7 @@ struct SplitCommand: Command {
                 }
                 if parent.children.count == 1 {
                     parent.changeOrientation(orientation)
+                    parent.hasUserDefinedOrientation = true
                 } else {
                     let data = window.unbindFromParent()
                     let newParent = TilingContainer(
@@ -39,6 +40,7 @@ struct SplitCommand: Command {
                         .tiles,
                         index: data.index,
                     )
+                    newParent.hasUserDefinedOrientation = true
                     window.bind(to: newParent, adaptiveWeight: WEIGHT_AUTO, index: 0)
                 }
                 return .succ

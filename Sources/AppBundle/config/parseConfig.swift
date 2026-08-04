@@ -289,24 +289,9 @@ struct ParseConfigResult {
             .toOrderedSet()
     }
 
-    if config.enableNormalizationFlattenContainers {
-        let containsSplitCommand = config.modes.values.lazy.flatMap { $0.bindings.values }
-            .flatMap { $0.commands.flatten() }
-            .contains { $0 is SplitCommand }
-        if containsSplitCommand {
-            c.errors += [.init(
-                .emptyRoot, // todo Make 'split' + flatten normalization prettier
-                """
-                The config contains:
-                1. usage of 'split' command
-                2. enable-normalization-flatten-containers = true
-                These two settings don't play nicely together. 'split' command has no effect when enable-normalization-flatten-containers is disabled.
-
-                My recommendation: keep the normalizations enabled, and prefer 'join-with' over 'split'.
-                """,
-            )]
-        }
-    }
+    // Upstream rejects any config that binds 'split' while the flatten normalization is on, because
+    // an eager split is undone by that normalization immediately. This fork instead defers the
+    // split the way i3 does, so the combination is now the supported one. See SplitCommand.
     if config.configVersion < .max {
         let msg = "The current 'config-version = \(config.configVersion)' is outdated. " +
             "Please consider migrating to 'config-version = \(ConfigVersion.max)'. " +
