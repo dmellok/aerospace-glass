@@ -4,6 +4,29 @@
 
 AeroSpace is an i3-like tiling window manager for macOS
 
+## About this fork
+
+This is a fork of [nikitabobko/AeroSpace](https://github.com/nikitabobko/AeroSpace) that adds the
+window decorations upstream deliberately leaves out, plus closer i3 parity for `split`.
+Everything else tracks upstream. See [`docs/glass.adoc`](docs/glass.adoc) for the full reference.
+
+- **`tabbed` layout.** A third tiling layout beside `tiles` and `accordion`. It stacks the
+  container's windows and reserves a strip above them for a real tab bar, which is what i3's tabbed
+  layout does and what accordion only hints at with padding slivers. `aerospace layout tabbed`.
+- **Glass tab bars.** The reserved strip is drawn with macOS 26 Liquid Glass, one tab per window
+  with its app icon and title. Clicking a tab focuses that window without activating AeroSpace.
+- **Glass window borders.** An optional border around tiled windows to show which one has focus.
+  Unlike running [JankyBorders](https://github.com/FelixKratz/JankyBorders) alongside AeroSpace,
+  this one knows about AeroSpace's workspace model, so it doesn't leave stray borders piled in the
+  screen corner where hidden workspaces park their windows. Off by default.
+- **i3-compatible `split`.** Upstream's `split` fails outright under the default
+  `enable-normalization-flatten-containers`. Here it instead records i3's intent and the next window
+  to open beside the marked one lands in a new container of the requested orientation.
+
+Decorations are configured under the `glass.*` config keys and use only public AppKit API — no
+SkyLight, no Screen Recording permission. On macOS 25 and earlier they fall back to the classic
+blur materials.
+
 Videos:
 - [YouTube 91 sec Demo](https://www.youtube.com/watch?v=UOl7ErqWbrk)
 - [YouTube Guide by Josean Martinez](https://www.youtube.com/watch?v=-FoWClVHG5g)

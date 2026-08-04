@@ -17,8 +17,18 @@ aerospace split [-h|--help] [--window-id <window-id>] (horizontal|vertical|oppos
 == Description
 
 // tag::body[]
-`split` command exists solely for compatibility with i3.
-Unless you're hardcore i3 user who knows what they are doing, it's recommended to use `join-with`
+`split` reproduces i3's split command.
+If you don't want i3 semantics, `join-with` is the more direct way to put several windows under a
+common parent.
+
+*If `enable-normalization-flatten-containers` is turned on* (the default), `split` behaves exactly
+like i3: it changes nothing immediately, it only marks the focused window.
+The next window that opens beside it is placed into a new container of the requested orientation,
+together with the marked window.
+Splitting eagerly would be pointless in this mode, because a container with a single child is
+flattened away again by the normalization.
+
+The paragraphs below describe the behavior when the normalization is turned off.
 
 *If the parent of focused window contains more than one child*, then the command
 
@@ -31,8 +41,8 @@ The argument configures orientation of the newly created container.
 
 *If the parent of the focused window contains only a single child* (the window itself), then `split` command changes the orientation of the parent container
 
-IMPORTANT: `split` command has no effect if `enable-normalization-flatten-containers` is turned on.
-Consider using `join-with` if you want to keep `enable-normalization-flatten-containers` enabled
+NOTE: In upstream AeroSpace, `split` fails outright when `enable-normalization-flatten-containers` is
+turned on. This fork replaces that error with the deferred i3 behavior described above.
 
 // =========================================================== Options
 include::util/conditional-options-header.adoc[]

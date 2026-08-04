@@ -48,6 +48,8 @@ Possible values:
 +
 * `h_tiles|v_tiles|h_accordion|v_accordion` - Change both tiling layout and orientation in one go
 * `tiles|accordion` - Change tiling layout but preserve orientation
+* `tabbed` - i3's tabbed layout. Stacks all windows of the container and draws a tab bar above them.
+  Orientation doesn't apply. Requires `glass.tabs.enabled` to draw the bar
 * `horizontal|vertical` - Change orientation but preserve layout
 * `tiling|floating` - Toggle between floating/tiling mode
 +
@@ -64,6 +66,9 @@ include::./util/conditional-examples-header.adoc[]
 
 * Toggle between `tiles` and `accordion` layouts (order of args doesn't matter): +
 `aerospace layout tiles accordion`
+
+* Toggle between `tiles` and i3's `tabbed` layout: +
+`aerospace layout tiles tabbed`
 
 * Switch to `tiles` layout. Toggle the layout orientation if already in `tiles` layout: +
 `aerospace layout tiles horizontal vertical`

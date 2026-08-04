@@ -26,7 +26,7 @@ enable-normalization-opposite-orientation-for-nested-containers = true
 # You can set 0 to disable the padding feature
 accordion-padding = 30
 
-# Possible values: tiles|accordion
+# Possible values: tiles|accordion|tabbed
 default-root-container-layout = 'tiles'
 
 # Possible values: horizontal|vertical|auto
@@ -79,6 +79,30 @@ gaps.outer.left =       0
 gaps.outer.bottom =     0
 gaps.outer.top =        0
 gaps.outer.right =      0
+
+# Glass decorations drawn on top of managed windows.
+# On macOS 26 these use Liquid Glass, older releases fall back to the classic blur materials.
+# Sizes are whole points. Colors accept '#RRGGBB', '#RRGGBBAA' or JankyBorders-style '0xAARRGGBB'.
+
+# A border around each tiled window, to show which one has focus.
+# Off by default: it costs one overlay panel per visible window.
+glass.borders.enabled =        false
+glass.borders.width =          3
+glass.borders.corner-radius =  11
+glass.borders.padding =        2
+glass.borders.show-inactive =  true
+glass.borders.active-color =   '#8CC7FF'
+glass.borders.inactive-color = '#FFFFFF2E'
+
+# The tab bar drawn above containers that use the 'tabbed' layout.
+# Does nothing until a container actually uses it, e.g. `aerospace layout tabbed`.
+glass.tabs.enabled =       true
+glass.tabs.height =        30
+glass.tabs.spacing =       4
+glass.tabs.corner-radius = 10
+glass.tabs.font-size =     12
+glass.tabs.show-icons =    true
+glass.tabs.active-tint =   '#8CC7FF8C'
 
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes

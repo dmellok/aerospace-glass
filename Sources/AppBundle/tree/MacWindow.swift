@@ -226,6 +226,22 @@ private func unbindAndGetBindingDataForNewTilingWindow(_ workspace: Workspace, w
     window?.unbindFromParent() // It's important to unbind to get correct data from below
     let mruWindow = workspace.mostRecentWindowRecursive
     if let mruWindow, let tilingParent = mruWindow.parent as? TilingContainer {
+        // i3-like deferred split: a preceding 'split' command marked this window, so wrap it in a
+        // new container and drop the incoming window in beside it. The container has two children,
+        // so the flatten normalization leaves it alone.
+        if let orientation = mruWindow.pendingSplitOrientation {
+            mruWindow.pendingSplitOrientation = nil
+            let data = mruWindow.unbindFromParent()
+            let newParent = TilingContainer(
+                parent: tilingParent,
+                adaptiveWeight: data.adaptiveWeight,
+                orientation,
+                .tiles,
+                index: data.index,
+            )
+            mruWindow.bind(to: newParent, adaptiveWeight: WEIGHT_AUTO, index: 0)
+            return BindingData(parent: newParent, adaptiveWeight: WEIGHT_AUTO, index: 1)
+        }
         return BindingData(
             parent: tilingParent,
             adaptiveWeight: WEIGHT_AUTO,

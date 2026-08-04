@@ -6,9 +6,6 @@ struct SplitCommand: Command {
     /*conforms*/ let shouldResetClosedWindowsCache = true
 
     func run(_ env: CmdEnv, _ io: CmdIo) -> BinaryExitCode {
-        if config.enableNormalizationFlattenContainers {
-            return .fail(io.err("'split' has no effect when 'enable-normalization-flatten-containers' normalization enabled. My recommendation: keep the normalizations enabled, and prefer 'join-with' over 'split'."))
-        }
         guard let target = args.resolveTargetOrReportError(env, io) else { return .fail }
         guard let window = target.windowOrNil else {
             return .fail(io.err(noWindowIsFocused))
@@ -23,6 +20,13 @@ struct SplitCommand: Command {
                     case .vertical: .v
                     case .horizontal: .h
                     case .opposite: parent.orientation.opposite
+                }
+                // Splitting eagerly is pointless while the flatten normalization is on: a container
+                // with a single child is immediately flattened away again. Record i3's intent
+                // instead, and honor it when the next window opens beside this one.
+                if config.enableNormalizationFlattenContainers {
+                    window.pendingSplitOrientation = orientation
+                    return .succ
                 }
                 if parent.children.count == 1 {
                     parent.changeOrientation(orientation)

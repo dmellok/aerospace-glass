@@ -77,7 +77,12 @@ final class GlassOverlayManager {
                         ))
                     }
                 }
-                for child in container.children {
+                // In a tabbed container every child has the same rect, so decorating all of them
+                // would stack identical borders on top of each other. Only the visible one counts.
+                let visible = container.layout == .tabbed
+                    ? [container.mostRecentChild].compactMap(id)
+                    : container.children
+                for child in visible {
                     collect(node: child, focusedWindowId: focusedWindowId, &borders, &tabBars)
                 }
             case .workspace, .floatingWindowsContainer, .macosMinimizedWindowsContainer,

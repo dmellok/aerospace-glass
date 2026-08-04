@@ -1,0 +1,123 @@
+= Glass decorations
+:toc:
+
+This page documents the additions this fork makes on top of upstream AeroSpace.
+Everything here is inert unless you turn it on, so an upstream config keeps working unchanged.
+
+== The tabbed layout
+
+`tabbed` is a third tiling layout beside `tiles` and `accordion`.
+Every window in the container gets the same rect, minus a strip reserved at the top for the tab bar,
+so only the most recently used window is visible and the others sit behind it.
+
+[source,bash]
+----
+aerospace layout tabbed          # turn the focused window's container into a tabbed one
+aerospace layout tiles tabbed    # toggle between tiles and tabbed
+----
+
+This is i3's tabbed layout.
+Upstream maps i3's tabbed layout onto `h_accordion`, which keeps every window slightly offset so a
+sliver of each neighbour peeks out; it never tells you the titles, and it is hard to see how many
+windows are stacked. The tab bar answers both.
+
+Orientation does not apply to `tabbed`, and `aerospace list-windows --format '%{window-layout}'`
+reports `tabbed` regardless of the container's orientation.
+
+The bar is drawn only while `glass.tabs.enabled` is true.
+With it off, `tabbed` still works as a layout — it just stacks the windows with no visible chrome,
+and the strip is not reserved.
+
+== Window borders
+
+An optional border drawn around each tiled window on a visible workspace, to show which one has
+focus. Off by default, because it costs one overlay panel per visible window.
+
+[source,toml]
+----
+glass.borders.enabled = true
+----
+
+Borders are never drawn for windows of invisible workspaces.
+AeroSpace implements virtual workspaces by parking the windows of inactive workspaces in a screen
+corner; a border tool that doesn't know about this — such as JankyBorders — draws for those parked
+windows too, which is the well-known pile of stray borders in the corner of the screen.
+Because this implementation reads AeroSpace's own tree, it simply doesn't draw them.
+
+In a `tabbed` container only the visible window is given a border, since the others share its rect.
+
+== Configuration
+
+All keys are optional. Sizes are whole points — TOML floats are not supported by AeroSpace's config
+parser. Colors accept `+#RRGGBB+`, `+#RRGGBBAA+`, or JankyBorders-style `0xAARRGGBB`, so you can
+paste a color straight out of an existing `borders` setup.
+
+[source,toml]
+----
+glass.borders.enabled =        false   # draw borders at all
+glass.borders.width =          3       # stroke thickness
+glass.borders.corner-radius =  11      # macOS 26 windows are about 11pt rounded
+glass.borders.padding =        2       # outward offset, so the stroke hugs rather than covers
+glass.borders.show-inactive =  true    # also outline unfocused windows
+glass.borders.active-color =   '#8CC7FF'
+glass.borders.inactive-color = '#FFFFFF2E'
+
+glass.tabs.enabled =       true
+glass.tabs.height =        30          # height of the reserved strip
+glass.tabs.spacing =       4           # gap between the strip and the windows below
+glass.tabs.corner-radius = 10
+glass.tabs.font-size =     12
+glass.tabs.show-icons =    true        # show each window's app icon in its tab
+glass.tabs.active-tint =   '#8CC7FF8C'
+----
+
+== How it is drawn
+
+The decorations are non-activating, borderless `NSPanel` overlays at the `.floating` window level,
+reconciled at the end of every refresh session against the geometry the layout pass already cached
+on the tree. No Accessibility API calls are made to place them, so they add no round-trips to the
+layout hot path. Window titles are the one exception: they come from the Accessibility API
+asynchronously and are cached, so a stalled app can't stall the layout pass — its tab shows the app
+name until the title arrives.
+
+On macOS 26 the panels use Liquid Glass (`NSGlassEffectView` / SwiftUI `glassEffect`). On macOS 25
+and earlier they fall back to `NSVisualEffectView` blur materials. Either way the blur is composited
+by the window server, so it picks up the windows of other applications without any private API and
+without the Screen Recording permission.
+
+Known limitations:
+
+* Because the panels sit at the `.floating` level, a floating window placed over a tiled one is
+  drawn *under* that window's border.
+* Apple has an open regression (FB/forums thread 810314) where `NSGlassEffectView` in a borderless
+  window can cache its backdrop and fail to refresh as windows move beneath it. If you hit it, the
+  decorations still track window geometry correctly; only the blurred content behind them goes
+  stale.
+
+== i3-compatible split
+
+Upstream's `split` refuses to run while `enable-normalization-flatten-containers` is on, which is
+the default:
+
+....
+'split' has no effect when 'enable-normalization-flatten-containers' normalization enabled.
+....
+
+That is accurate for an eager split — a container with a single child is flattened away again the
+moment it is created. i3 doesn't split eagerly either. `split h` in i3 marks the focused window, and
+the *next* window to open beside it goes into a new container.
+
+This fork implements that. Under the flatten normalization, `split` records the requested
+orientation on the focused window and returns success without touching the tree. When the next
+window opens beside it, both are placed into a fresh container with that orientation — which has two
+children and therefore survives normalization.
+
+[source,bash]
+----
+aerospace split vertical    # then open a new window: it lands below, not beside
+----
+
+With `enable-normalization-flatten-containers = false`, `split` keeps upstream's eager behavior.
+
+`join-with` is unchanged and is still the more direct way to put existing windows under a common
+parent.
