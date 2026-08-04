@@ -10,6 +10,16 @@ extension TreeNode {
             visit(node: child, result: &result)
         }
     }
+    /// The node a preceding `split` marked, if any. Containers are checked before descending into
+    /// them, so splitting a tab group wins over a stale mark left on one of its tabs.
+    var firstNodeWithPendingSplitRecursive: TreeNode? {
+        if pendingSplitOrientation != nil { return self }
+        for child in children {
+            if let found = child.firstNodeWithPendingSplitRecursive { return found }
+        }
+        return nil
+    }
+
     var allLeafWindowsRecursive: [Window] {
         var result: [Window] = []
         visit(node: self, result: &result)

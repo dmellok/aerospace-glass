@@ -37,6 +37,18 @@ final class TestWindow: Window, CustomStringConvertible {
         _rect
     }
 
+    /// Record what the layout pass asked for, so tests can assert on the frames windows actually
+    /// receive rather than only on the rects cached on the tree.
+    override func setAxFrame(_ topLeft: CGPoint?, _ size: CGSize?) {
+        let current = _rect
+        _rect = Rect(
+            topLeftX: topLeft?.x ?? current?.topLeftX ?? 0,
+            topLeftY: topLeft?.y ?? current?.topLeftY ?? 0,
+            width: size?.width ?? current?.width ?? 0,
+            height: size?.height ?? current?.height ?? 0,
+        )
+    }
+
     @MainActor override func getAxSize(_ cm: CancellationMode) async throws -> CGSize? {
         _rect.map { CGSize(width: $0.width, height: $0.height) }
     }

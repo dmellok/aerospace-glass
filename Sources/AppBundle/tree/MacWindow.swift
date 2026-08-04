@@ -233,15 +233,15 @@ private func unbindAndGetBindingDataForNewTilingWindow(_ workspace: Workspace, w
     // The marked window is searched for across the workspace rather than assumed to be the MRU:
     // opening a window activates its application, which can move the MRU off the marked window
     // before the new window is ever registered.
-    let markedWindow = mruWindow?.pendingSplitOrientation != nil
+    let markedNode: TreeNode? = mruWindow?.pendingSplitOrientation != nil
         ? mruWindow
-        : workspace.allLeafWindowsRecursive.first { $0.pendingSplitOrientation != nil }
-    if let markedWindow,
-       let orientation = markedWindow.pendingSplitOrientation,
-       let tilingParent = markedWindow.parent as? TilingContainer
+        : workspace.rootTilingContainer.firstNodeWithPendingSplitRecursive
+    if let markedNode,
+       let orientation = markedNode.pendingSplitOrientation,
+       let tilingParent = markedNode.parent as? TilingContainer
     {
-        markedWindow.pendingSplitOrientation = nil
-        let data = markedWindow.unbindFromParent()
+        markedNode.pendingSplitOrientation = nil
+        let data = markedNode.unbindFromParent()
         let newParent = TilingContainer(
             parent: tilingParent,
             adaptiveWeight: data.adaptiveWeight,
@@ -250,7 +250,7 @@ private func unbindAndGetBindingDataForNewTilingWindow(_ workspace: Workspace, w
             index: data.index,
         )
         newParent.hasUserDefinedOrientation = true
-        markedWindow.bind(to: newParent, adaptiveWeight: WEIGHT_AUTO, index: 0)
+        markedNode.bind(to: newParent, adaptiveWeight: WEIGHT_AUTO, index: 0)
         return BindingData(parent: newParent, adaptiveWeight: WEIGHT_AUTO, index: 1)
     }
 

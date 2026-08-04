@@ -8,10 +8,6 @@ open class Window: TreeNode, Hashable {
     var isFullscreen: Bool = false
     var noOuterGapsInFullscreen: Bool = false
     var layoutReason: LayoutReason = .standard
-    /// i3's `split` semantics: the window is marked, and the *next* window to open beside it is put
-    /// into a fresh container of this orientation instead of joining the current parent. Cleared as
-    /// soon as it is consumed. See ``SplitCommand``.
-    var pendingSplitOrientation: Orientation? = nil
 
     @MainActor
     init(id: UInt32, _ app: any AbstractApp, lastFloatingSize: CGSize?, parent: NonLeafTreeNodeObject, adaptiveWeight: CGFloat, index: Int) {

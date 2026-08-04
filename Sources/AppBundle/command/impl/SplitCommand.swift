@@ -25,7 +25,12 @@ struct SplitCommand: Command {
                 // with a single child is immediately flattened away again. Record i3's intent
                 // instead, and honor it when the next window opens beside this one.
                 if config.enableNormalizationFlattenContainers {
-                    window.pendingSplitOrientation = orientation
+                    // Splitting from inside a tab divides the whole tab group rather than nesting a
+                    // split within the focused tab, which would leave the other tabs at the old
+                    // size while only the visible one shrank. i3 reaches the group with
+                    // 'focus parent' first; AeroSpace has no equivalent, so mark the group here.
+                    let target: TreeNode = parent.layout == .tabbed ? parent : window
+                    target.pendingSplitOrientation = orientation
                     return .succ
                 }
                 if parent.children.count == 1 {

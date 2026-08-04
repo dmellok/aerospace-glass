@@ -70,6 +70,25 @@ final class SplitCommandTest: XCTestCase {
         assertEquals(root.layoutDescription, .h_tiles([.window(1), .window(2)]))
     }
 
+    /// Splitting from inside a tab must mark the whole tab group, not the focused tab. Marking the
+    /// tab would nest the split inside it, leaving the other tabs at the container's full size while
+    /// only the visible one shrank.
+    func testSplitFromInsideATabMarksTheWholeGroup() async {
+        config.enableNormalizationFlattenContainers = true
+        let root = Workspace.get(byName: name).rootTilingContainer
+        let tabbed = TilingContainer(parent: root, adaptiveWeight: 1, .h, .tabbed, index: INDEX_BIND_LAST)
+        let tab1 = TestWindow.new(id: 1, parent: tabbed)
+        let tab2 = TestWindow.new(id: 2, parent: tabbed)
+        TestWindow.new(id: 3, parent: root)
+        assertEquals(tab1.focusWindow(), true)
+
+        await parseCommand("split vertical").cmdOrDie.run(.defaultEnv, .emptyStdin)
+
+        assertEquals(tabbed.pendingSplitOrientation, .v)
+        assertEquals(tab1.pendingSplitOrientation, nil)
+        assertEquals(tab2.pendingSplitOrientation, nil)
+    }
+
     func testToggleOrientation() async {
         let root = Workspace.get(byName: name).rootTilingContainer.apply {
             TilingContainer.newVTiles(parent: $0, adaptiveWeight: 1).apply {
