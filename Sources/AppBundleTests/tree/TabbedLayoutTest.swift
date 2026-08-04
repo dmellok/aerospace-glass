@@ -27,6 +27,25 @@ final class TabbedLayoutTest: XCTestCase {
         assertSameRect(try await tab3.getAxRect(.nonCancellable), visible)
     }
 
+    /// Tabs run left to right in the bar, so a tab group always navigates horizontally no matter how
+    /// it was created or what the opposite-orientation normalization would prefer. Otherwise
+    /// `focus left`/`right` steps straight past the other tabs and out of the group.
+    func testTabGroupIsAlwaysHorizontal() {
+        config.enableNormalizationOppositeOrientationForNestedContainers = true
+        let workspace = Workspace.get(byName: name)
+        let root = workspace.rootTilingContainer
+        root.changeOrientation(.h)
+        // Deliberately built vertical: a tab group must still report horizontal
+        let tabbed = TilingContainer(parent: root, adaptiveWeight: 1, .v, .tabbed, index: INDEX_BIND_LAST)
+        TestWindow.new(id: 1, parent: tabbed)
+        TestWindow.new(id: 2, parent: tabbed)
+        TestWindow.new(id: 3, parent: root)
+
+        assertEquals(tabbed.orientation, Orientation.h)
+        workspace.normalizeContainers()
+        assertEquals(tabbed.orientation, Orientation.h)
+    }
+
     /// Shrinking the container — here by adding a sibling below it — has to reach every tab.
     /// Otherwise the hidden tabs keep the full height they had before and overflow their tile.
     func testHiddenTabsShrinkWithTheContainer() async throws {

@@ -3,7 +3,12 @@ import Common
 
 final class TilingContainer: TreeNode, NonLeafTreeNodeObject { // todo consider renaming to GenericContainer
     fileprivate var _orientation: Orientation
-    var orientation: Orientation { _orientation }
+    /// A tabbed container is always horizontal: its tabs run left to right in the bar, so `focus
+    /// left`/`right` must step between them and `up`/`down` must leave the group — the same split
+    /// i3 draws between its tabbed and stacked layouts. Reporting the stored orientation here would
+    /// let the opposite-orientation normalization flip a tab group to vertical, and left/right would
+    /// then skip straight past the other tabs.
+    var orientation: Orientation { layout == .tabbed ? .h : _orientation }
     var layout: Layout
     /// Set by the layout pass for `tabbed` containers, consumed by ``GlassOverlayManager`` to place
     /// the tab bar. nil for every other layout, and for containers too short to fit a bar.
@@ -53,7 +58,9 @@ extension TilingContainer {
     }
 
     func normalizeOppositeOrientationForNestedContainers() {
-        if !hasUserDefinedOrientation, orientation == (parent as? TilingContainer)?.orientation {
+        if !hasUserDefinedOrientation, layout != .tabbed,
+           orientation == (parent as? TilingContainer)?.orientation
+        {
             _orientation = orientation.opposite
         }
         for child in children {

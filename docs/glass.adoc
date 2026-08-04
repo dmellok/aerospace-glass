@@ -30,6 +30,18 @@ aerospace move left     # from the tile beside it: becomes a new tab
 aerospace move right    # from inside the container: moves back out
 ----
 
+A tab group is always horizontal, whatever orientation it was created with and whatever
+`enable-normalization-opposite-orientation-for-nested-containers` would prefer. Its tabs run left to
+right in the bar, so `focus left` and `focus right` step between them and then out of the group,
+while `focus up`/`down` leave it directly. This is the same split i3 draws between its tabbed and
+stacked layouts.
+
+[source,bash]
+----
+aerospace focus left     # previous tab, then out of the group
+aerospace focus right    # next tab, then out of the group
+----
+
 A tabbed container is exempt from `enable-normalization-flatten-containers`. Without that exemption
 a container holding a single tab would be flattened away the instant it was created.
 
