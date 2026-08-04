@@ -45,9 +45,13 @@ extension TreeNode {
                 lastAppliedLayoutVirtualRect = virtual
                 switch container.layout {
                     case .tiles:
+                        container.lastAppliedTabBarRect = nil
                         try await container.layoutTiles(point, width: width, height: height, virtual: virtual, context)
                     case .accordion:
+                        container.lastAppliedTabBarRect = nil
                         try await container.layoutAccordion(point, width: width, height: height, virtual: virtual, context)
+                    case .tabbed:
+                        try await container.layoutTabbed(point, width: width, height: height, virtual: virtual, context)
                 }
             case .macosMinimizedWindowsContainer, .macosFullscreenWindowsContainer,
                  .macosPopupWindowsContainer, .macosHiddenAppsWindowsContainer:
@@ -137,6 +141,33 @@ extension TilingContainer {
             )
             virtualPoint = orientation == .h ? virtualPoint.addingXOffset(child.hWeight) : virtualPoint.addingYOffset(child.vWeight)
             point = orientation == .h ? point.addingXOffset(child.hWeight) : point.addingYOffset(child.vWeight)
+        }
+    }
+
+    /// i3-like tabbed layout: reserve a strip at the top for the tab bar, then stack every child in
+    /// the remaining rect. The children fully overlap, so the focused one (which macOS raises to the
+    /// front) is the only one visible. The strip itself is filled in by ``GlassOverlayManager``.
+    @MainActor
+    fileprivate func layoutTabbed(_ point: CGPoint, width: CGFloat, height: CGFloat, virtual: Rect, _ context: LayoutContext) async throws {
+        let barHeight = CGFloat(config.glass.tabs.height)
+        let spacing = CGFloat(config.glass.tabs.spacing)
+        // Don't reserve the strip if it would leave no usable room for the windows
+        let reserved = height > (barHeight + spacing) * 2 ? barHeight + spacing : 0
+
+        lastAppliedTabBarRect = reserved > 0
+            ? Rect(topLeftX: point.x, topLeftY: point.y, width: width, height: barHeight)
+            : nil
+
+        let contentPoint = point.addingYOffset(reserved)
+        let contentHeight = height - reserved
+        for child in children {
+            try await child.layoutRecursive(
+                contentPoint,
+                width: width,
+                height: contentHeight,
+                virtual: virtual,
+                context,
+            )
         }
     }
 

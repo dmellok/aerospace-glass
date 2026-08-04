@@ -5,6 +5,9 @@ final class TilingContainer: TreeNode, NonLeafTreeNodeObject { // todo consider 
     fileprivate var _orientation: Orientation
     var orientation: Orientation { _orientation }
     var layout: Layout
+    /// Set by the layout pass for `tabbed` containers, consumed by ``GlassOverlayManager`` to place
+    /// the tab bar. nil for every other layout, and for containers too short to fit a bar.
+    var lastAppliedTabBarRect: Rect? = nil
 
     @MainActor
     init(parent: NonLeafTreeNodeObject, adaptiveWeight: CGFloat, _ orientation: Orientation, _ layout: Layout, index: Int) {
@@ -58,6 +61,20 @@ extension TilingContainer {
 enum Layout: String {
     case tiles
     case accordion
+    /// i3-like tabbed layout. All children share the same rect, minus a tab bar strip that is
+    /// reserved at the top of the container. Only the most recently used child is visible, the
+    /// rest are covered by it. The tab bar itself is drawn by ``GlassOverlayManager``.
+    case tabbed
+}
+
+extension Layout {
+    /// Whether the layout stacks all children on top of each other instead of subdividing the rect
+    var isStacking: Bool {
+        switch self {
+            case .tiles: false
+            case .accordion, .tabbed: true
+        }
+    }
 }
 
 extension String {

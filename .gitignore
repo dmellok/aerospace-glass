@@ -22,3 +22,6 @@
 # XCode User settings
 xcuserdata/
 xcshareddata/
+
+# Local dev build output
+.debug/

@@ -61,10 +61,52 @@ struct Config: ConvenienceMutable {
     var modes: [String: Mode] = [:]
     var onWindowDetected: [WindowDetectedCallback] = []
     var onModeChanged: Shell<any Command> = .empty
+
+    var glass: GlassConfig = GlassConfig()
 }
 
 struct FocusFollowsMouse: ConvenienceMutable {
     var enabled: Bool = false
+}
+
+/// Appearance of the native macOS glass decorations that this fork draws on top of managed windows.
+struct GlassConfig: ConvenienceMutable {
+    var borders: GlassBordersConfig = GlassBordersConfig()
+    var tabs: GlassTabsConfig = GlassTabsConfig()
+}
+
+struct GlassBordersConfig: ConvenienceMutable {
+    var enabled: Bool = false
+    /// Stroke thickness in points
+    var width: Double = 3
+    /// Corner radius of the stroke. macOS windows are ~10pt rounded on Tahoe
+    var cornerRadius: Double = 11
+    /// Outward offset from the window frame, so the stroke hugs the window instead of covering it
+    var padding: Double = 2
+    var activeColor: GlassColor = GlassColor(red: 0.55, green: 0.78, blue: 1.0, alpha: 0.95)
+    var inactiveColor: GlassColor = GlassColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.18)
+    /// Draw a border around unfocused windows too
+    var showInactive: Bool = true
+}
+
+struct GlassTabsConfig: ConvenienceMutable {
+    var enabled: Bool = true
+    /// Height of the tab bar strip reserved above a `tabbed` container
+    var height: Double = 30
+    /// Gap between the tab bar and the window content below it
+    var spacing: Double = 4
+    var cornerRadius: Double = 10
+    var fontSize: Double = 12
+    /// Show each window's app icon in its tab
+    var showIcons: Bool = true
+    var activeTint: GlassColor = GlassColor(red: 0.55, green: 0.78, blue: 1.0, alpha: 0.55)
+}
+
+struct GlassColor: Equatable, Sendable {
+    var red: Double
+    var green: Double
+    var blue: Double
+    var alpha: Double
 }
 
 enum ConfigVersion: Int, Comparable, CaseIterable, Sendable, CustomStringConvertible {

@@ -145,7 +145,7 @@ struct FocusCommand: Command {
                     center.getProjection(tilingParent.orientation) >= targetCenter.getProjection(tilingParent.orientation)
                         ? target.ownIndex.orDie() + 1
                         : target.ownIndex.orDie()
-                case .accordion:
+                case .accordion, .tabbed:
                     center.getProjection(tilingParent.orientation) >= targetCenter.getProjection(tilingParent.orientation)
                         ? tilingParent.children.count
                         : 0
