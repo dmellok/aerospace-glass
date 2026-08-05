@@ -150,12 +150,14 @@ extension TilingContainer {
     @MainActor
     fileprivate func layoutTabbed(_ point: CGPoint, width: CGFloat, height: CGFloat, virtual: Rect, _ context: LayoutContext) async throws {
         let barHeight = CGFloat(config.glass.tabs.height)
+        let padding = CGFloat(config.glass.tabs.padding)
         let spacing = CGFloat(config.glass.tabs.spacing)
         // Don't reserve the strip if it would leave no usable room for the windows
-        let reserved = height > (barHeight + spacing) * 2 ? barHeight + spacing : 0
+        let strip = padding + barHeight + spacing
+        let reserved = height > strip * 2 ? strip : 0
 
         lastAppliedTabBarRect = reserved > 0
-            ? Rect(topLeftX: point.x, topLeftY: point.y, width: width, height: barHeight)
+            ? Rect(topLeftX: point.x, topLeftY: point.y + padding, width: width, height: barHeight)
             : nil
 
         let contentPoint = point.addingYOffset(reserved)

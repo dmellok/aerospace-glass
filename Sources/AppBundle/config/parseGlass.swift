@@ -3,12 +3,14 @@ import Common
 private let glassParser: [String: any ParserProtocol<GlassConfig>] = [
     "borders": Parser(\.borders, parseGlassBorders),
     "tabs": Parser(\.tabs, parseGlassTabs),
+    "drop-preview": Parser(\.dropPreview, parseGlassDropPreview),
 ]
 
 private let glassBordersParser: [String: any ParserProtocol<GlassBordersConfig>] = [
     "enabled": Parser(\.enabled, parseBool),
     "width": Parser(\.width, parsePoints),
     "corner-radius": Parser(\.cornerRadius, parsePoints),
+    "app-corner-radius": Parser(\.appCornerRadius, parseAppCornerRadius),
     "padding": Parser(\.padding, parsePoints),
     "active-color": Parser(\.activeColor, parseGlassColor),
     "inactive-color": Parser(\.inactiveColor, parseGlassColor),
@@ -18,6 +20,7 @@ private let glassBordersParser: [String: any ParserProtocol<GlassBordersConfig>]
 private let glassTabsParser: [String: any ParserProtocol<GlassTabsConfig>] = [
     "enabled": Parser(\.enabled, parseBool),
     "height": Parser(\.height, parsePoints),
+    "padding": Parser(\.padding, parsePoints),
     "spacing": Parser(\.spacing, parsePoints),
     "corner-radius": Parser(\.cornerRadius, parsePoints),
     "font-size": Parser(\.fontSize, parsePoints),
@@ -25,6 +28,14 @@ private let glassTabsParser: [String: any ParserProtocol<GlassTabsConfig>] = [
     "bar-tint": Parser(\.barTint, parseGlassColor),
     "inactive-tint": Parser(\.inactiveTint, parseGlassColor),
     "active-tint": Parser(\.activeTint, parseGlassColor),
+]
+
+private let glassDropPreviewParser: [String: any ParserProtocol<GlassDropPreviewConfig>] = [
+    "enabled": Parser(\.enabled, parseBool),
+    "corner-radius": Parser(\.cornerRadius, parsePoints),
+    "tint": Parser(\.tint, parseGlassColor),
+    "stroke-color": Parser(\.strokeColor, parseGlassColor),
+    "cell-color": Parser(\.cellColor, parseGlassColor),
 ]
 
 func parseGlass(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext) -> GlassConfig {
@@ -37,6 +48,25 @@ private func parseGlassBorders(_ raw: OrderedJson, _ backtrace: ConfigBacktrace,
 
 private func parseGlassTabs(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext) -> GlassTabsConfig {
     parseTable(raw, GlassTabsConfig(), glassTabsParser, backtrace, &c)
+}
+
+private func parseGlassDropPreview(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext) -> GlassDropPreviewConfig {
+    parseTable(raw, GlassDropPreviewConfig(), glassDropPreviewParser, backtrace, &c)
+}
+
+/// A table of `'app.bundle.id' = radius` pairs overriding `corner-radius` for that app's windows.
+private func parseAppCornerRadius(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext) -> [String: Double] {
+    guard let rawTable = raw.asDictOrNil else {
+        c.errors += [expectedActualTypeDiagnostic(expected: .table, actual: raw.tomlType, backtrace)]
+        return [:]
+    }
+    var result: [String: Double] = [:]
+    for (appBundleId, rawRadius) in rawTable {
+        if let radius = parsePoints(rawRadius, backtrace + .key(appBundleId)).getOrNil(appendErrorTo: &c.errors) {
+            result[appBundleId] = radius
+        }
+    }
+    return result
 }
 
 /// TOML floats aren't representable in ``OrderedJson``, so sizes are configured as whole points.

@@ -50,12 +50,58 @@ Upstream maps i3's tabbed layout onto `h_accordion`, which keeps every window sl
 sliver of each neighbour peeks out; it never tells you the titles, and it is hard to see how many
 windows are stacked. The tab bar answers both.
 
+The bar is mouse-aware, and none of it activates AeroSpace or steals focus from your app: clicking a
+tab focuses its window, hovering a tab reveals a close button at its left edge, and tabs can be
+dragged — within the bar, into other tab groups, or into the layout. See <<drag-and-drop>>.
+
 Orientation does not apply to `tabbed`, and `aerospace list-windows --format '%{window-layout}'`
 reports `tabbed` regardless of the container's orientation.
 
 The bar is drawn only while `glass.tabs.enabled` is true.
 With it off, `tabbed` still works as a layout — it just stacks the windows with no visible chrome,
 and the strip is not reserved.
+
+Fullscreen hides the decorations rather than being floated over by them: a macOS-native fullscreen
+app takes its own Space, which the panels deliberately don't join, and while an
+aerospace-`fullscreen` window covers a workspace no bars or borders are drawn on its monitor.
+
+[#drag-and-drop]
+== Drag and drop
+
+Dragging a tiled window by its title bar no longer merely swaps it with whatever sits underneath.
+While the drag is in flight an overlay sketches the workspace's splits as faint outlines, and the
+slot the drop would land in is filled with blurred glass. Where the window lands depends on where
+over the target cell you release it:
+
+* *Center of a tile* — the two windows swap places, as before.
+* *Near an edge of a tile* — the dragged window splits that tile, taking the half you pointed at.
+  If the tile's parent split already runs that way the window simply joins it at that position;
+  otherwise the tile is wrapped in a new split, the same tree shapes the `move` command produces.
+* *The tab bar strip of a tab group* — the window joins the group as a tab at the exact position
+  the insertion caret shows.
+* *The body of a tab group* — the window joins the group as its last tab.
+* *The top edge of the workspace* (a band one bar tall) — the window becomes a tab of the cell
+  under the cursor, creating the tab group on the spot when that cell doesn't have one yet. The
+  preview marks the cell and sketches the bar the drop will grow across its top.
+* *An edge of a tab group* — the group is split as a whole, tabs travelling together.
+* *An empty workspace on another monitor* — the window becomes its first tile.
+
+Dropping in a dead zone (your own cell, an empty stretch of desktop on the same workspace) cancels
+the drag: the window snaps back to its slot. The tree is only mutated on mouse-up — during the drag
+the layout stays put, so there is no live reshuffling to chase the cursor through.
+
+Tabs in a glass tab bar are draggable too, and resolve against the same drop targets:
+
+* *Within their own bar* — reorder; the caret shows the insertion point.
+* *Onto another group's bar or body* — the tab moves to that group.
+* *Onto a tile or its edges* — the tab leaves the group and swaps with or splits that tile.
+* *Past the bar into nothing in particular* (about 40pt vertically) — the browser tear-off: the tab
+  becomes its own tile right beside the group.
+
+A tab that fronts a nested container moves as a whole, like its single tab suggests.
+
+The preview is configured under `glass.drop-preview` (see <<configuration,Configuration>>); setting
+`glass.drop-preview.enabled = false` disables the overlay while keeping the drop behavior.
 
 == Window borders
 
@@ -75,6 +121,7 @@ Because this implementation reads AeroSpace's own tree, it simply doesn't draw t
 
 In a `tabbed` container only the visible window is given a border, since the others share its rect.
 
+[#configuration]
 == Configuration
 
 All keys are optional. Sizes are whole points — TOML floats are not supported by AeroSpace's config
@@ -86,13 +133,17 @@ paste a color straight out of an existing `borders` setup.
 glass.borders.enabled =        false   # draw borders at all
 glass.borders.width =          3       # stroke thickness
 glass.borders.corner-radius =  11      # macOS 26 windows are about 11pt rounded
-glass.borders.padding =        2       # outward offset, so the stroke hugs rather than covers
+# Per-app radius overrides by bundle id, for windows with non-standard corners (custom-chrome
+# terminals, Electron apps, ...). Find an app's id with:  aerospace list-windows --all --format '%{app-bundle-id} %{app-name}'
+glass.borders.app-corner-radius = { 'com.apple.Terminal' = 11, 'org.alacritty' = 0 }
+glass.borders.padding =        0       # outward offset; 0 hugs the window edge
 glass.borders.show-inactive =  true    # also outline unfocused windows
 glass.borders.active-color =   '#8CC7FF'
 glass.borders.inactive-color = '#FFFFFF2E'
 
 glass.tabs.enabled =       true
 glass.tabs.height =        30          # height of the reserved strip
+glass.tabs.padding =       0           # gap above the bar, between the top of the tile and the strip
 glass.tabs.spacing =       4           # gap between the strip and the windows below
 glass.tabs.corner-radius = 10
 glass.tabs.font-size =     12
@@ -103,7 +154,13 @@ glass.tabs.show-icons =    true        # show each window's app icon in its tab
 # fill a tab uses, so text stays legible if you retune them.
 glass.tabs.bar-tint =      '#00000038'
 glass.tabs.inactive-tint = '#00000047'
-glass.tabs.active-tint =   '#FFFFFFD1'
+glass.tabs.active-tint =   '#FFFFFF59'
+
+glass.drop-preview.enabled =       true
+glass.drop-preview.corner-radius = 10
+glass.drop-preview.tint =         '#8CC7FF21'  # faint fill of the active drop slot; the blur does the work
+glass.drop-preview.stroke-color = '#8CC7FFE6'  # outline of the slot, and the tab insertion caret
+glass.drop-preview.cell-color =   '#FFFFFF40'  # faint outlines sketching the other cells
 ----
 
 == How it is drawn
@@ -111,9 +168,11 @@ glass.tabs.active-tint =   '#FFFFFFD1'
 The decorations are non-activating, borderless `NSPanel` overlays at the `.floating` window level,
 reconciled at the end of every refresh session against the geometry the layout pass already cached
 on the tree. No Accessibility API calls are made to place them, so they add no round-trips to the
-layout hot path. Window titles are the one exception: they come from the Accessibility API
-asynchronously and are cached, so a stalled app can't stall the layout pass — its tab shows the app
-name until the title arrives.
+layout hot path. Window titles and actual window frames are the exceptions: they come from the
+Accessibility API asynchronously and are cached, so a stalled app can't stall the layout pass. A
+tab shows the app name until its title arrives, and a border is drawn around the intended rect
+until the real frame lands — some windows refuse the exact frame they are given (terminals snap to
+their cell grid), and the border follows where the window actually ended up.
 
 On macOS 26 the panels use Liquid Glass (`NSGlassEffectView` / SwiftUI `glassEffect`). On macOS 25
 and earlier they fall back to `NSVisualEffectView` blur materials. Either way the blur is composited

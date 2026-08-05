@@ -1,6 +1,9 @@
 import AppKit
 
 @MainActor var currentlyManipulatedWithMouseWindowId: UInt32? = nil
+/// Where releasing the currently dragged tiling window would put it. Refreshed on every drag tick
+/// by ``moveWithMouse``, consumed on mouse-up by ``resetManipulatedWithMouseIfPossible``.
+@MainActor var pendingDropTarget: DropTarget? = nil
 var isLeftMouseButtonDown: Bool { NSEvent.pressedMouseButtons == 1 }
 
 @MainActor

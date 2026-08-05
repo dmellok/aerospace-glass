@@ -96,6 +96,8 @@ public enum RefreshSessionEvent: Sendable, CustomStringConvertible {
     case ax(String)
     case focusFollowsMouse
     case glassTabBarClick
+    case glassTabBarClose
+    case glassTabBarDrop
 
     public var isStartup: Bool {
         if case .startup = self { return true } else { return false }
@@ -118,6 +120,8 @@ public enum RefreshSessionEvent: Sendable, CustomStringConvertible {
             case .startup: "startup"
             case .focusFollowsMouse: "focusFollowsMouse"
             case .glassTabBarClick: "glassTabBarClick"
+            case .glassTabBarClose: "glassTabBarClose"
+            case .glassTabBarDrop: "glassTabBarDrop"
         }
     }
 }

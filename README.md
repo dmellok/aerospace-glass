@@ -3,7 +3,8 @@
 <img src="./resources/Assets.xcassets/AppIcon.appiconset/icon.png" width="40%" align="right">
 
 AeroSpace is an i3-like tiling window manager for macOS. This fork adds an i3-style tabbed layout
-with Liquid Glass tab bars, optional window borders, and i3-compatible splitting.
+with Liquid Glass tab bars, drag-and-drop with a glass drop preview, optional window borders, and
+i3-compatible splitting.
 
 ## About this fork
 
@@ -64,7 +65,30 @@ tabs form a value ramp against the strip: unselected a shade darker, selected th
 the bar. Label colors are derived from each tab's fill luminance rather than the system appearance,
 because a decoration floats over arbitrary application content and the light/dark setting says
 nothing about what a label will actually sit on. Clicking a tab focuses that window without
-activating AeroSpace.
+activating AeroSpace, hovering one reveals a close button at its left edge, and tabs are
+draggable — within the bar, into other groups, into the layout (see below).
+
+### Drag & drop
+
+Dragging a tiled window by its title bar resolves a real drop target instead of just swapping with
+whatever is underneath. While the drag is in flight, an overlay sketches the workspace's splits as
+faint outlines and fills the slot the drop would land in with blurred glass:
+
+- **Center of a tile** — swap places.
+- **Edge of a tile** — split it, taking the half you pointed at (joining the parent split when it
+  already runs that way — the same tree shapes the `move` command produces).
+- **A tab group's bar** — join as a tab at the caret position; **its body** — join as the last tab;
+  **its edges** — split around the whole group.
+- **The top edge of the workspace** — become a tab of the cell under the cursor, creating the tab
+  group on the spot if that cell doesn't have one yet.
+- **Empty workspace on another monitor** — become its first tile.
+
+A drop in a dead zone cancels: the window snaps back. The tree only mutates on mouse-up, so the
+layout doesn't reshuffle under the cursor mid-drag.
+
+Tabs drag against the same targets: reorder within their own bar, move to another group's bar or
+body, swap with or split a tile, or tear off past the bar into their own tile beside the group —
+the browser gesture.
 
 **Borders** — an optional outline around each tiled window showing which has focus. Off by default,
 since it costs one overlay panel per visible window.
@@ -78,6 +102,19 @@ know which tab of a group is visible, so a tab group gets one border rather than
 
 No private APIs and no Screen Recording permission: the window server composites the blur, so it
 picks up other applications' windows through public AppKit alone.
+
+### i3-style floating
+
+Upstream's `layout floating` detaches a window from the tiling tree but then leaves it out of
+keyboard control: `move` and `resize` both refuse floating windows. This fork completes the i3
+picture — `move` nudges a floating window 30pt per press, `resize` changes its frame in place
+(`smart` resizes both dimensions), and `focus` already reaches floating windows in both this fork
+and upstream.
+
+With `floating-windows-on-top = true`, floating windows also stay above the tiled layer the way
+i3 keeps them. macOS can't pin another process's window at a higher level, so after each refresh
+any float that ended up buried beneath a tiled window is raised back via the Accessibility raise
+action (focus is unaffected, and nothing is raised when the floats are already on top).
 
 ### i3-compatible `split`
 
@@ -123,20 +160,28 @@ pasted straight out of an existing `borders` setup.
 glass.borders.enabled =        false   # draw borders at all
 glass.borders.width =          3
 glass.borders.corner-radius =  11      # macOS 26 windows are ~11pt rounded
-glass.borders.padding =        2       # outward offset, so the stroke hugs rather than covers
+glass.borders.app-corner-radius = { 'org.alacritty' = 0 }  # per-app overrides by bundle id
+glass.borders.padding =        0       # outward offset; 0 hugs the window edge
 glass.borders.show-inactive =  true
 glass.borders.active-color =   '#8CC7FF'
 glass.borders.inactive-color = '#FFFFFF2E'
 
 glass.tabs.enabled =       true
 glass.tabs.height =        30          # height of the reserved strip
+glass.tabs.padding =       0           # gap above the bar, between the top of the tile and the strip
 glass.tabs.spacing =       4           # gap between the strip and the windows below
 glass.tabs.corner-radius = 10
 glass.tabs.font-size =     12
 glass.tabs.show-icons =    true
 glass.tabs.bar-tint =      '#00000038'  # the ramp: dim strip,
 glass.tabs.inactive-tint = '#00000047'  # unselected a shade darker,
-glass.tabs.active-tint =   '#FFFFFFD1'  # selected lightest
+glass.tabs.active-tint =   '#FFFFFF59'  # selected lightest
+
+glass.drop-preview.enabled =       true # the blurred drag-and-drop overlay
+glass.drop-preview.corner-radius = 10
+glass.drop-preview.tint =         '#8CC7FF21'  # faint fill of the active drop slot
+glass.drop-preview.stroke-color = '#8CC7FFE6'  # its outline, and the tab insertion caret
+glass.drop-preview.cell-color =   '#FFFFFF40'  # faint outlines of the other cells
 ```
 
 > **TOML gotcha:** these are dotted keys, so they must appear *before* the first `[table]` header in

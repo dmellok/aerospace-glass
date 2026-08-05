@@ -22,6 +22,47 @@ final class ConfigTest: XCTestCase {
         assertTrue(result.strWarnings.first?.starts(with: "[WARNING] The current 'config-version = 1' is outdated.") == true)
     }
 
+    func testParseGlassAppCornerRadius() {
+        let result = parseConfig(
+            """
+            config-version = 2
+            glass.borders.app-corner-radius = { 'com.apple.Terminal' = 0, 'org.alacritty' = 7 }
+            """,
+        )
+        assertEquals(result.errors, [])
+        assertEquals(result.config.glass.borders.appCornerRadius, ["com.apple.Terminal": 0, "org.alacritty": 7])
+    }
+
+    func testParseGlassTabsPadding() {
+        let result = parseConfig(
+            """
+            config-version = 2
+            glass.tabs.padding = 6
+            """,
+        )
+        assertEquals(result.errors, [])
+        assertEquals(result.config.glass.tabs.padding, 6)
+    }
+
+    func testParseGlassDropPreview() {
+        let result = parseConfig(
+            """
+            config-version = 2
+            glass.drop-preview.enabled = false
+            glass.drop-preview.corner-radius = 6
+            glass.drop-preview.tint = '#FF000040'
+            glass.drop-preview.stroke-color = '#FF0000'
+            glass.drop-preview.cell-color = '0x40FFFFFF'
+            """,
+        )
+        assertEquals(result.errors, [])
+        assertEquals(result.config.glass.dropPreview.enabled, false)
+        assertEquals(result.config.glass.dropPreview.cornerRadius, 6)
+        assertEquals(result.config.glass.dropPreview.tint, GlassColor(red: 1, green: 0, blue: 0, alpha: Double(0x40) / 255))
+        assertEquals(result.config.glass.dropPreview.strokeColor, GlassColor(red: 1, green: 0, blue: 0, alpha: 1))
+        assertEquals(result.config.glass.dropPreview.cellColor, GlassColor(red: 1, green: 1, blue: 1, alpha: Double(0x40) / 255))
+    }
+
     func testParseDefaultConfig() {
         let toml = try! String(contentsOf: projectRoot.appending(component: "docs/config-examples/default-config.toml"), encoding: .utf8)
         let result = parseConfig(toml)

@@ -46,42 +46,23 @@ private func moveFloatingWindow(_ window: Window) async throws {
     }
 }
 
+/// A dragged tiling window no longer rearranges the tree while the mouse moves. Each tick only
+/// resolves where a release would put it and renders that as the glass drop preview; the mutation
+/// itself happens on mouse-up in ``resetManipulatedWithMouseIfPossible``. This is what lets a drop
+/// join a tab group or slot into a split instead of merely swapping with whatever is underneath.
 @MainActor
 private func moveTilingWindow(_ window: Window) {
     currentlyManipulatedWithMouseWindowId = window.windowId
     window.lastAppliedLayoutPhysicalRect = nil
     let mouseLocation = mouseLocation
-    let targetWorkspace = mouseLocation.monitorApproximation.activeWorkspace
-    let swapTarget = mouseLocation
-        .findWindowRecursively(in: targetWorkspace.rootTilingContainer, virtual: false, fullscreenCoversAll: false)?
-        .takeIf { $0 != window }
-    if targetWorkspace != window.nodeWorkspace { // Move window to a different monitor
-        let index: Int = if let swapTarget, let parent = swapTarget.parent as? TilingContainer, let targetRect = swapTarget.lastAppliedLayoutPhysicalRect {
-            mouseLocation.getProjection(parent.orientation) >= targetRect.center.getProjection(parent.orientation)
-                ? swapTarget.ownIndex.orDie() + 1
-                : swapTarget.ownIndex.orDie()
-        } else {
-            0
-        }
-        window.bind(
-            to: swapTarget?.parent ?? targetWorkspace.rootTilingContainer,
-            adaptiveWeight: WEIGHT_AUTO,
-            index: index,
-        )
-    } else if let swapTarget {
-        swapWindows(mruDominant: window, swapTarget)
-    }
+    let target = resolveDropTarget(mouseLocation, dragged: window)
+    pendingDropTarget = target
+    GlassDropPreviewController.shared.update(point: mouseLocation, target: target)
 }
 
 @MainActor
 func swapWindows(mruDominant window1: Window, _ window2: Window) {
-    if window1 == window2 { return }
-
-    let binding2 = window2.unbindFromParent()
-    let binding1 = window1.unbindFromParent()
-
-    window2.bind(to: binding1.parent, adaptiveWeight: binding1.adaptiveWeight, index: binding1.index)
-    window1.bind(to: binding2.parent, adaptiveWeight: binding2.adaptiveWeight, index: binding2.index)
+    swapTreeNodes(window1, window2)
 }
 
 extension CGPoint {

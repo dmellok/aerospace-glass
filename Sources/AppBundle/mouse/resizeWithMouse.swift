@@ -25,8 +25,17 @@ func resizedObs(_: AXObserver, ax: AXUIElement, notif: CFString, _: UnsafeMutabl
 
 @MainActor
 func resetManipulatedWithMouseIfPossible() async throws {
-    if currentlyManipulatedWithMouseWindowId != nil {
+    if let draggedWindowId = currentlyManipulatedWithMouseWindowId {
         currentlyManipulatedWithMouseWindowId = nil
+        GlassDropPreviewController.shared.hide()
+        if let target = pendingDropTarget {
+            pendingDropTarget = nil
+            // The drop the drag ticks resolved. The scheduled refresh below normalizes and lays
+            // out the mutated tree
+            if let window = Window.get(byId: draggedWindowId), window.parent is TilingContainer {
+                applyDrop(target, dragged: window)
+            }
+        }
         for workspace in Workspace.all {
             workspace.resetResizeWeightBeforeResizeRecursive()
         }

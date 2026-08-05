@@ -20,7 +20,10 @@ class GlassPanel<Content: View>: NSPanel {
         // Assign after isFloatingPanel, which itself sets the level. .floating (3) sits above
         // ordinary windows but stays clipped below the menu bar, which is what we want.
         level = .floating
-        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
+        // Deliberately not .fullScreenAuxiliary: the decorations belong to the tiled workspace, so
+        // when a macOS-native fullscreen app takes over a monitor's Space, the window server keeps
+        // them off that Space instead of floating them over the fullscreen content.
+        collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
         isReleasedWhenClosed = false
         hidesOnDeactivate = false
         isMovableByWindowBackground = false

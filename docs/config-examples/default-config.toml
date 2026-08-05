@@ -89,7 +89,9 @@ gaps.outer.right =      0
 glass.borders.enabled =        false
 glass.borders.width =          3
 glass.borders.corner-radius =  11
-glass.borders.padding =        2
+glass.borders.padding =        0
+# Per-app corner radius overrides by app bundle id, for windows with non-standard corners
+glass.borders.app-corner-radius = {}
 glass.borders.show-inactive =  true
 glass.borders.active-color =   '#8CC7FF'
 glass.borders.inactive-color = '#FFFFFF2E'
@@ -98,6 +100,7 @@ glass.borders.inactive-color = '#FFFFFF2E'
 # Does nothing until a container actually uses it, e.g. `aerospace layout tabbed`.
 glass.tabs.enabled =       true
 glass.tabs.height =        30
+glass.tabs.padding =       0
 glass.tabs.spacing =       4
 glass.tabs.corner-radius = 10
 glass.tabs.font-size =     12
@@ -106,7 +109,14 @@ glass.tabs.show-icons =    true
 # Label colors are derived from these, so text stays legible if you retune them.
 glass.tabs.bar-tint =      '#00000038'
 glass.tabs.inactive-tint = '#00000047'
-glass.tabs.active-tint =   '#FFFFFFD1'
+glass.tabs.active-tint =   '#FFFFFF59'
+
+# The overlay shown while a window or tab is dragged: the workspace's splits as
+# faint outlines, the slot the drop would land in as blurred glass.
+glass.drop-preview.enabled = true
+
+# Keep floating windows above the tiled layer, i3-style
+floating-windows-on-top = false
 
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
