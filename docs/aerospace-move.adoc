@@ -21,6 +21,9 @@ aerospace move [-h|--help] [--window-id <window-id>] [--boundaries <boundary>]
 // tag::body[]
 Move the focused window in the given direction. See the "Examples" section for more details.
 
+If the focused window is floating, it is nudged 30pt in the given direction instead, the way i3
+moves its floating windows. (This fork; upstream fails on floating windows.)
+
 Deprecated name: `move-through`
 
 // =========================================================== Options

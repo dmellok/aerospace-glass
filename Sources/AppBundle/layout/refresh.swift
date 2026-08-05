@@ -48,6 +48,7 @@ func runHeavyCompleteRefreshSession(
             if shouldLayoutWorkspaces { try await layoutWorkspaces() }
             // Must run after layoutWorkspaces: it renders the geometry that pass caches on the tree
             GlassOverlayManager.shared.refresh()
+            raiseFloatingWindows()
         }
     }
     switch res {
@@ -83,6 +84,7 @@ func runLightSession<T>(
         SecureInputPanel.shared.refresh()
         if !event.isFocusFollowsMouse { try await layoutWorkspaces() }
         GlassOverlayManager.shared.refresh()
+        raiseFloatingWindows()
         if focusBefore != focusAfter {
             focusAfter?.nativeFocus() // syncFocusToMacOs
         }

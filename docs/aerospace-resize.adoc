@@ -19,6 +19,10 @@ aerospace resize [-h|--help] [--window-id <window-id>] (smart|smart-opposite|wid
 // tag::body[]
 {manpurpose}
 
+If the focused window is floating, its frame is resized directly: the top-left corner stays put,
+and `smart`/`smart-opposite` change both dimensions. (This fork; upstream fails on floating
+windows.)
+
 The dimension to resize is chosen by the first argument
 
 * `width` changes width

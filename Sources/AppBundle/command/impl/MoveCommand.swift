@@ -36,13 +36,32 @@ struct MoveCommand: Command {
                     return moveOut(tilingWindow: currentWindow, direction: direction, io, args, env)
                 }
             case .floatingWindowsContainer: // floating window
-                return .fail(io.err("moving floating windows isn't yet supported")) // todo
+                return await moveFloating(window: currentWindow, direction: direction, io)
             case .macosMinimizedWindowsContainer, .macosFullscreenWindowsContainer, .macosHiddenAppsWindowsContainer:
                 return .fail(io.err(moveOutMacosUnconventionalWindow))
             case .macosPopupWindowsContainer:
                 return .fail(io.err(bugPrompt())) // Impossible
         }
     }
+}
+
+/// How far one `move` nudges a floating window, in points. i3 moves floating windows by a fixed
+/// step per key press instead of rearranging the tree; 10px there assumes key repeat, 30pt here
+/// makes each press count.
+private let floatingMoveStep: CGFloat = 30
+
+@MainActor private func moveFloating(window: Window, direction: CardinalDirection, _ io: CmdIo) async -> BinaryExitCode {
+    guard let rect = try? await window.getAxRect(.cancellable) else {
+        return .fail(io.err("Can't read the window frame"))
+    }
+    let (dx, dy): (CGFloat, CGFloat) = switch direction {
+        case .left: (-floatingMoveStep, 0)
+        case .right: (floatingMoveStep, 0)
+        case .up: (0, -floatingMoveStep)
+        case .down: (0, floatingMoveStep)
+    }
+    window.setAxFrame(CGPoint(x: rect.topLeftX + dx, y: rect.topLeftY + dy), nil)
+    return .succ
 }
 
 @MainActor private func hitWorkspaceBoundaries(

@@ -62,6 +62,10 @@ struct Config: ConvenienceMutable {
     var onWindowDetected: [WindowDetectedCallback] = []
     var onModeChanged: Shell<any Command> = .empty
 
+    /// Keep floating windows above the tiled layer, i3-style. Approximated with the Accessibility
+    /// raise action, since macOS can't pin another process's window at a higher level.
+    var floatingWindowsOnTop: Bool = false
+
     var glass: GlassConfig = GlassConfig()
 }
 
@@ -73,6 +77,7 @@ struct FocusFollowsMouse: ConvenienceMutable {
 struct GlassConfig: ConvenienceMutable {
     var borders: GlassBordersConfig = GlassBordersConfig()
     var tabs: GlassTabsConfig = GlassTabsConfig()
+    var dropPreview: GlassDropPreviewConfig = GlassDropPreviewConfig()
 }
 
 struct GlassBordersConfig: ConvenienceMutable {
@@ -81,8 +86,13 @@ struct GlassBordersConfig: ConvenienceMutable {
     var width: Double = 3
     /// Corner radius of the stroke. macOS windows are ~10pt rounded on Tahoe
     var cornerRadius: Double = 11
-    /// Outward offset from the window frame, so the stroke hugs the window instead of covering it
-    var padding: Double = 2
+    /// Per-app overrides for `cornerRadius`, keyed by app bundle id. Most windows share the system
+    /// radius, but apps that draw their own chrome (terminals, Electron apps with custom frames)
+    /// can have square or unusual corners that make the standard ring float around them.
+    var appCornerRadius: [String: Double] = [:]
+    /// Outward offset from the window frame. 0 means the stroke sits flush against the window
+    /// edge; raise it to leave a sliver of air between the window and its border
+    var padding: Double = 0
     var activeColor: GlassColor = GlassColor(red: 0.55, green: 0.78, blue: 1.0, alpha: 0.95)
     var inactiveColor: GlassColor = GlassColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.18)
     /// Draw a border around unfocused windows too
@@ -93,6 +103,8 @@ struct GlassTabsConfig: ConvenienceMutable {
     var enabled: Bool = true
     /// Height of the tab bar strip reserved above a `tabbed` container
     var height: Double = 30
+    /// Gap above the bar, between the top edge of the tile and the strip
+    var padding: Double = 0
     /// Gap between the tab bar and the window content below it
     var spacing: Double = 4
     var cornerRadius: Double = 10
@@ -100,10 +112,25 @@ struct GlassTabsConfig: ConvenienceMutable {
     /// Show each window's app icon in its tab
     var showIcons: Bool = true
     /// The three fills form a value ramp: the strip is dim, unselected tabs sit a shade darker
-    /// against it, and the selected tab is the lightest thing in the bar.
+    /// against it, and the selected tab is the lightest thing in the bar — lighter than its
+    /// neighbors without turning into a solid chip.
     var barTint: GlassColor = GlassColor(red: 0, green: 0, blue: 0, alpha: 0.22)
     var inactiveTint: GlassColor = GlassColor(red: 0, green: 0, blue: 0, alpha: 0.28)
-    var activeTint: GlassColor = GlassColor(red: 1, green: 1, blue: 1, alpha: 0.82)
+    var activeTint: GlassColor = GlassColor(red: 1, green: 1, blue: 1, alpha: 0.35)
+}
+
+/// The overlay shown while a window or tab is dragged: the workspace's splits as faint outlines,
+/// and the slot the drop would land in as a blurred glass fill.
+struct GlassDropPreviewConfig: ConvenienceMutable {
+    var enabled: Bool = true
+    var cornerRadius: Double = 10
+    /// Fill of the active drop slot, composited over the glass blur. Kept faint so the slot reads
+    /// as glass — the blur does the work, the tint only names the accent
+    var tint: GlassColor = GlassColor(red: 0.55, green: 0.78, blue: 1.0, alpha: 0.13)
+    /// Outline of the active drop slot, and the tab insertion caret
+    var strokeColor: GlassColor = GlassColor(red: 0.55, green: 0.78, blue: 1.0, alpha: 0.9)
+    /// Outline of the inactive cells sketching the rest of the layout
+    var cellColor: GlassColor = GlassColor(red: 1, green: 1, blue: 1, alpha: 0.25)
 }
 
 struct GlassColor: Equatable, Sendable {

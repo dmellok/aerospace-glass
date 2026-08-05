@@ -113,6 +113,10 @@ final class MacWindow: Window {
         macApp.nativeFocus(windowId)
     }
 
+    @MainActor override func nativeRaise() {
+        macApp.raiseAxWindow(windowId)
+    }
+
     override func closeAxWindow() {
         garbageCollect(skipClosedWindowsCache: true)
         macApp.closeAndUnregisterAxWindow(windowId)
