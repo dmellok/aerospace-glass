@@ -5,8 +5,14 @@ import SwiftUI
 ///
 /// Unlike ``NSPanelHud`` these panels are not HUDs: they are unshadowed, they sit just above
 /// ordinary windows, and they are repositioned on every layout pass, so they must never animate.
+/// Phases of a middle-button drag on a decoration panel. SwiftUI gestures only track the primary
+/// button, so middle-drag is caught at the AppKit layer and forwarded through this.
+enum MiddleDragPhase {
+    case began, moved, ended
+}
+
 class GlassPanel<Content: View>: NSPanel {
-    private let hostingView: NSHostingView<Content>
+    private let hostingView: GlassHostingView<Content>
 
     init(content: Content, clickThrough: Bool) {
         hostingView = GlassHostingView(rootView: content)
@@ -54,6 +60,13 @@ class GlassPanel<Content: View>: NSPanel {
         set { hostingView.rootView = newValue }
     }
 
+    /// Fired for middle-button drags anywhere on the panel, tabs included — the SwiftUI layer
+    /// never sees non-primary buttons, so there is nothing to conflict with.
+    var onMiddleDrag: ((MiddleDragPhase) -> ())? {
+        get { hostingView.onMiddleDrag }
+        set { hostingView.onMiddleDrag = newValue }
+    }
+
     /// Move the panel without implicit animation. The window manager repositions decorations on
     /// every refresh, and Core Animation's default frame animation would smear them across the
     /// screen behind the windows they belong to.
@@ -74,6 +87,26 @@ class GlassPanel<Content: View>: NSPanel {
 
 /// Without `acceptsFirstMouse` the first click on a tab is swallowed, because the panel's app is
 /// not the active one — which is the normal state for a decoration.
-private final class GlassHostingView<Content: View>: NSHostingView<Content> {
+final class GlassHostingView<Content: View>: NSHostingView<Content> {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    var onMiddleDrag: ((MiddleDragPhase) -> ())?
+    private var isMiddleDragging = false
+
+    override func otherMouseDown(with event: NSEvent) {
+        guard event.buttonNumber == 2, let onMiddleDrag else { return super.otherMouseDown(with: event) }
+        isMiddleDragging = true
+        onMiddleDrag(.began)
+    }
+
+    override func otherMouseDragged(with event: NSEvent) {
+        guard isMiddleDragging, let onMiddleDrag else { return super.otherMouseDragged(with: event) }
+        onMiddleDrag(.moved)
+    }
+
+    override func otherMouseUp(with event: NSEvent) {
+        guard isMiddleDragging, let onMiddleDrag else { return super.otherMouseUp(with: event) }
+        isMiddleDragging = false
+        onMiddleDrag(.ended)
+    }
 }

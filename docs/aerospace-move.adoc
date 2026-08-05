@@ -11,7 +11,7 @@ include::util/man-attributes.adoc[]
 // tag::synopsis[]
 aerospace move [-h|--help] [--window-id <window-id>] [--boundaries <boundary>]
                [--boundaries-action <boundary-action>] [--fail-if-fullscreen]
-               [--fail-if-macos-native-fullscreen] (left|down|up|right)
+               [--fail-if-macos-native-fullscreen] [--tab-group] (left|down|up|right)
 
 // end::synopsis[]
 
@@ -49,6 +49,13 @@ Exit with non-zero code if the target window is fullscreen by the `fullscreen` c
 
 --fail-if-macos-native-fullscreen::
 Exit with non-zero code if the target window is in macOS native fullscreen.
+
+--tab-group::
+Move the whole `tabbed` group containing the focused window, not the window alone. All tabs travel
+together, the same as middle-dragging the group's tab bar. When the window is not inside a tab
+group, the window alone is moved, so the same binding works everywhere. When the group is the
+workspace's root container, the only meaningful move is to the monitor in the given direction.
+(This fork.)
 
 // =========================================================== Examples
 include::util/conditional-examples-header.adoc[]

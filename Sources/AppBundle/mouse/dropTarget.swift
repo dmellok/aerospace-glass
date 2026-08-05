@@ -147,7 +147,9 @@ func applyDrop(_ target: DropTarget, dragged: TreeNode) {
     guard dragged.isBound else { return }
     switch target {
         case .tabBar(let group, let insertIndex):
-            guard group.isBound, group.layout == .tabbed else { return }
+            // The subtree check matters for whole-group drags: binding a group into a descendant
+            // would tie the tree into a cycle
+            guard group.isBound, group.layout == .tabbed, !group.parentsWithSelf.contains(dragged) else { return }
             var index = insertIndex
             if dragged.parent === group, let ownIndex = dragged.ownIndex {
                 if index > ownIndex { index -= 1 } // The gap the dragged tab leaves behind
@@ -155,7 +157,8 @@ func applyDrop(_ target: DropTarget, dragged: TreeNode) {
             let upperBound = group.children.count - (dragged.parent === group ? 1 : 0)
             dragged.bind(to: group, adaptiveWeight: WEIGHT_AUTO, index: min(max(index, 0), max(upperBound, 0)))
         case .tabGroup(let group):
-            guard group.isBound, group.layout == .tabbed, dragged.parent !== group else { return }
+            guard group.isBound, group.layout == .tabbed, dragged.parent !== group,
+                  !group.parentsWithSelf.contains(dragged) else { return }
             dragged.bind(to: group, adaptiveWeight: WEIGHT_AUTO, index: INDEX_BIND_LAST)
         case .newTabGroup(let window):
             guard window.isBound, window != dragged, !window.parentsWithSelf.contains(dragged),

@@ -10,6 +10,7 @@ public struct MoveCmdArgs: CmdArgs {
             "--boundaries-action": ArgParser(\.rawBoundariesAction, upcastArgParserFun(parseBoundariesAction)),
             "--fail-if-fullscreen": trueBoolFlag(\.failIfFullscreen),
             "--fail-if-macos-native-fullscreen": trueBoolFlag(\.failIfMacosNativeFullscreen),
+            "--tab-group": trueBoolFlag(\.wholeTabGroup),
         ],
         posArgs: [newMandatoryPosArgParser(\.direction, parseCardinalDirectionArg, placeholder: CardinalDirection.unionLiteral)],
     )
@@ -19,6 +20,9 @@ public struct MoveCmdArgs: CmdArgs {
     public var rawBoundariesAction: WhenBoundariesCrossed? = nil
     public var failIfFullscreen: Bool = false
     public var failIfMacosNativeFullscreen: Bool = false
+    /// Move the whole `tabbed` group containing the window, not the window alone.
+    /// Falls back to moving just the window when it is not inside a tab group.
+    public var wholeTabGroup: Bool = false
 
     public enum Boundaries: String, CaseIterable, Equatable, Sendable {
         case workspace

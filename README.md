@@ -88,7 +88,8 @@ layout doesn't reshuffle under the cursor mid-drag.
 
 Tabs drag against the same targets: reorder within their own bar, move to another group's bar or
 body, swap with or split a tile, or tear off past the bar into their own tile beside the group —
-the browser gesture.
+the browser gesture. **Middle-drag** anywhere on a bar picks up the entire tab group and moves it
+as one node through the same targets.
 
 **Borders** — an optional outline around each tiled window showing which has focus. Off by default,
 since it costs one overlay panel per visible window.

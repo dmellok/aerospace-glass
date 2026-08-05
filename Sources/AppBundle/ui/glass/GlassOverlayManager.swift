@@ -154,6 +154,18 @@ final class GlassOverlayManager {
                 GlassPanel(content: tabBarView(spec), clickThrough: false)
             }
             panel.rootView = tabBarView(spec)
+            // Middle-drag anywhere on the bar picks up the whole group and moves it as one node
+            // through the same drop targets a single window resolves against
+            panel.onMiddleDrag = { [group = spec.group] phase in
+                switch phase {
+                    case .began, .moved:
+                        groupDragChanged(group: group)
+                    case .ended:
+                        Task.startUnstructured { @MainActor in
+                            await groupDragEnded(group: group)
+                        }
+                }
+            }
             panel.setFrameInstantly(spec.rect.toCocoaRect)
             panel.showIfNeeded()
             liveTabBarSpecs[spec.container] = spec
@@ -277,6 +289,27 @@ private func tabDragNode(windowId: UInt32, group: TilingContainer?) -> TreeNode?
     guard let group, group.isBound, group.layout == .tabbed else { return nil }
     guard let window = Window.get(byId: windowId) else { return nil }
     return window.parentsWithSelf.first(where: { $0.parent === group })
+}
+
+/// A tick of a middle-button drag on a tab bar: the dragged node is the whole group.
+@MainActor
+private func groupDragChanged(group: TilingContainer?) {
+    guard let group, group.isBound, group.layout == .tabbed else { return }
+    let point = mouseLocation
+    GlassDropPreviewController.shared.update(point: point, target: resolveDropTarget(point, dragged: group))
+}
+
+@MainActor
+private func groupDragEnded(group: TilingContainer?) async {
+    GlassDropPreviewController.shared.hide()
+    guard let group, group.isBound, group.layout == .tabbed else { return }
+    guard let guardd = RunSessionGuard.isServerEnabled else { return }
+    try? await runLightSession(.glassTabBarDrop, guardd) {
+        // A plain middle-click resolves to the group's own cell, which is a dead zone: no-op
+        guard let target = resolveDropTarget(mouseLocation, dragged: group) else { return }
+        applyDrop(target, dragged: group)
+        _ = group.mostRecentWindowRecursive?.focusWindow()
+    }
 }
 
 @MainActor

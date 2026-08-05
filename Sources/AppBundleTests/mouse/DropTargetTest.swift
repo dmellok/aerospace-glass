@@ -128,6 +128,55 @@ final class DropTargetTest: XCTestCase {
         assertEquals(root.layoutDescription, .h_tiles([.window(2), .tabbed([.window(3), .window(1)])]))
     }
 
+    func testApplyDrop_moveWholeGroupBesideAnotherWindow() {
+        let root = Workspace.get(byName: name).rootTilingContainer
+        let tabbed = TilingContainer(parent: root, adaptiveWeight: 1, .h, .tabbed, index: INDEX_BIND_LAST)
+        TestWindow.new(id: 1, parent: tabbed)
+        TestWindow.new(id: 2, parent: tabbed)
+        let window3 = TestWindow.new(id: 3, parent: root)
+
+        applyDrop(.split(window3, .down), dragged: tabbed)
+
+        assertEquals(root.layoutDescription, .h_tiles([.v_tiles([.window(3), .tabbed([.window(1), .window(2)])])]))
+    }
+
+    func testApplyDrop_groupIntoItsOwnDescendant_isRefused() {
+        let root = Workspace.get(byName: name).rootTilingContainer
+        let outer = TilingContainer(parent: root, adaptiveWeight: 1, .h, .tabbed, index: INDEX_BIND_LAST)
+        TestWindow.new(id: 1, parent: outer)
+        let inner = TilingContainer(parent: outer, adaptiveWeight: 1, .h, .tabbed, index: INDEX_BIND_LAST)
+        TestWindow.new(id: 2, parent: inner)
+
+        applyDrop(.tabBar(group: inner, insertIndex: 0), dragged: outer)
+        applyDrop(.tabGroup(inner), dragged: outer)
+
+        assertEquals(root.layoutDescription, .h_tiles([.tabbed([.window(1), .tabbed([.window(2)])])]))
+    }
+
+    // MARK: - move --tab-group
+
+    func testMoveTabGroup_movesWholeGroup() async {
+        let root = Workspace.get(byName: name).rootTilingContainer
+        let tabbed = TilingContainer(parent: root, adaptiveWeight: 1, .h, .tabbed, index: INDEX_BIND_LAST)
+        assertEquals(TestWindow.new(id: 1, parent: tabbed).focusWindow(), true)
+        TestWindow.new(id: 2, parent: tabbed)
+        TestWindow.new(id: 3, parent: root)
+
+        await parseCommand("move --tab-group right").cmdOrDie.run(.defaultEnv, .emptyStdin)
+
+        assertEquals(root.layoutDescription, .h_tiles([.window(3), .tabbed([.window(1), .window(2)])]))
+    }
+
+    func testMoveTabGroup_outsideAGroup_movesJustTheWindow() async {
+        let root = Workspace.get(byName: name).rootTilingContainer
+        assertEquals(TestWindow.new(id: 1, parent: root).focusWindow(), true)
+        TestWindow.new(id: 2, parent: root)
+
+        await parseCommand("move --tab-group right").cmdOrDie.run(.defaultEnv, .emptyStdin)
+
+        assertEquals(root.layoutDescription, .h_tiles([.window(2), .window(1)]))
+    }
+
     // MARK: - resolveDropTarget
 
     func testResolve_centerOfAnotherWindow_isSwap() async throws {
@@ -235,6 +284,21 @@ final class DropTargetTest: XCTestCase {
 
         let rect = try XCTUnwrap(window1.lastAppliedLayoutPhysicalRect)
         assertNil(resolveDropTarget(CGPoint(x: rect.center.x, y: rect.minY + 1), dragged: window1))
+    }
+
+    func testResolve_groupDragOverItsOwnBar_isNil() async throws {
+        let workspace = Workspace.get(byName: name)
+        check(workspace.focusWorkspace()) // Make it the monitor's active workspace for hit-testing
+        let root = workspace.rootTilingContainer
+        let tabbed = TilingContainer(parent: root, adaptiveWeight: 1, .h, .tabbed, index: INDEX_BIND_LAST)
+        TestWindow.new(id: 1, parent: tabbed)
+        TestWindow.new(id: 2, parent: tabbed)
+        TestWindow.new(id: 3, parent: root)
+        try await workspace.layoutWorkspace()
+
+        // A plain middle-click: releasing over the group's own bar must be a no-op
+        let bar = try XCTUnwrap(tabbed.lastAppliedTabBarRect)
+        assertNil(resolveDropTarget(bar.center, dragged: tabbed))
     }
 
     func testResolve_gapBetweenWindows_resolvesToNearestCell() async throws {

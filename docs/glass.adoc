@@ -100,6 +100,11 @@ Tabs in a glass tab bar are draggable too, and resolve against the same drop tar
 
 A tab that fronts a nested container moves as a whole, like its single tab suggests.
 
+*Middle-drag* anywhere on a tab bar — tabs included — picks up the entire group and moves it as one
+node through the same drop targets: split a tile with it, swap with one, send it to another
+monitor, or drop it onto another group's bar to nest it there as a single tab. A plain middle-click
+releases over the group's own cell, which is a dead zone, so it does nothing.
+
 The preview is configured under `glass.drop-preview` (see <<configuration,Configuration>>); setting
 `glass.drop-preview.enabled = false` disables the overlay while keeping the drop behavior.
 
