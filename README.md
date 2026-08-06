@@ -3,7 +3,7 @@
 <img src="./resources/Assets.xcassets/AppIcon.appiconset/icon.png" width="40%" align="right">
 
 AeroSpace is an i3-like tiling window manager for macOS. This fork adds an i3-style tabbed layout
-with Liquid Glass tab bars, drag-and-drop with a glass drop preview, optional window borders, and
+with Liquid Glass tab bars, drag-and-drop with a glass drop preview, i3-style floating, and
 i3-compatible splitting.
 
 ## About this fork
@@ -15,9 +15,10 @@ decorations upstream deliberately leaves out, and closes the remaining gaps betw
 Upstream declines window decorations on purpose — see
 [#85](https://github.com/nikitabobko/AeroSpace/issues/85) for borders and the project's
 "[non-values](https://github.com/nikitabobko/AeroSpace#non-values)" on ricing — and recommends
-running [JankyBorders](https://github.com/FelixKratz/JankyBorders) alongside it instead. This fork
-takes the other path and draws them in-process, which turns out to matter (see
-[Why in-process](#why-in-process)).
+running [JankyBorders](https://github.com/FelixKratz/JankyBorders) alongside it instead. That
+recommendation is good and this fork doesn't try to replace it: for borders alone, run
+JankyBorders. What's here is the tabbed layout and the drag-and-drop, which need to live inside
+the window manager because they read and rewrite its tree.
 
 Full reference: [`docs/glass.adoc`](docs/glass.adoc).
 
@@ -91,15 +92,23 @@ body, swap with or split a tile, or tear off past the bar into their own tile be
 the browser gesture. **Middle-drag** anywhere on a bar picks up the entire tab group and moves it
 as one node through the same targets.
 
-**Borders** — an optional outline around each tiled window showing which has focus. Off by default,
-since it costs one overlay panel per visible window.
+The keyboard equivalent is `--tab-group`, which retargets `move` at the whole group containing the
+focused window (and falls back to the window alone when it isn't in one):
 
-<a name="why-in-process"></a>
-**Why in-process.** AeroSpace implements virtual workspaces by parking the windows of inactive
-workspaces in a screen corner. A border tool that doesn't know that — JankyBorders included — draws
-for those parked windows too, which is the familiar pile of stray borders in the corner of the
-screen. Because these decorations read AeroSpace's own tree, they simply don't draw them. They also
-know which tab of a group is visible, so a tab group gets one border rather than N stacked ones.
+```bash
+aerospace move --tab-group right
+```
+
+Dragging a window's **edge** resizes instead of moving. A drag starts unclassified and commits to
+one path or the other once the evidence is in — the size changing makes it a resize, the cursor
+travelling while the size holds still makes it a move — because a resize from a left or top edge
+moves the origin too and otherwise looks identical to a title-bar drag.
+
+**Borders** — an optional outline around each tiled window showing which has focus. Off by default,
+and worth leaving that way: [JankyBorders](https://github.com/FelixKratz/JankyBorders) does this
+better, and it's what these screenshots are running. The module stays because it reads AeroSpace's
+own tree, so it skips the windows parked off-screen for inactive workspaces and gives a tab group
+one border rather than one per stacked window. Niche, and not a reason to switch.
 
 No private APIs and no Screen Recording permission: the window server composites the blur, so it
 picks up other applications' windows through public AppKit alone.
@@ -199,6 +208,10 @@ alt-left = 'focus left'              # steps through tabs, then out of the group
 alt-right = 'focus right'
 alt-shift-left = 'move left'         # moves a window into or out of a tab group
 alt-shift-right = 'move right'
+ctrl-alt-left = 'move --tab-group left'    # moves the whole group
+ctrl-alt-right = 'move --tab-group right'
+alt-shift-space = 'layout floating tiling' # float the window; move/resize still reach it
+alt-equal = 'resize smart +50'
 ```
 
 ### Building and installing

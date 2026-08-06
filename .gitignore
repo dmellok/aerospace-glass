@@ -25,3 +25,6 @@ xcshareddata/
 
 # Local dev build output
 .debug/
+
+# Local demo/recording rig and post drafts — not part of the fork
+/demo/
