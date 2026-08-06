@@ -79,8 +79,8 @@ faint outlines and fills the slot the drop would land in with blurred glass:
   already runs that way — the same tree shapes the `move` command produces).
 - **A tab group's bar** — join as a tab at the caret position; **its body** — join as the last tab;
   **its edges** — split around the whole group.
-- **The top edge of the workspace** — become a tab of the cell under the cursor, creating the tab
-  group on the spot if that cell doesn't have one yet.
+- **The top edge of any tile** — become a tab of that tile, creating the tab group on the spot if
+  it doesn't have one yet. The `up` split zone starts just below the band.
 - **Empty workspace on another monitor** — become its first tile.
 
 A drop in a dead zone cancels: the window snaps back. The tree only mutates on mouse-up, so the

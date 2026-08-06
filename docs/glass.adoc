@@ -80,9 +80,10 @@ over the target cell you release it:
 * *The tab bar strip of a tab group* — the window joins the group as a tab at the exact position
   the insertion caret shows.
 * *The body of a tab group* — the window joins the group as its last tab.
-* *The top edge of the workspace* (a band one bar tall) — the window becomes a tab of the cell
-  under the cursor, creating the tab group on the spot when that cell doesn't have one yet. The
-  preview marks the cell and sketches the bar the drop will grow across its top.
+* *The top edge of any tile* (a band one bar tall, wherever the tile sits on screen) — the window
+  becomes a tab of that tile, creating the tab group on the spot when it doesn't have one yet. The
+  preview marks the cell and sketches the bar the drop will grow across its top. The `up` split
+  zone starts just below the band. Tiles too short to fit a bar don't offer the zone.
 * *An edge of a tab group* — the group is split as a whole, tabs travelling together.
 * *An empty workspace on another monitor* — the window becomes its first tile.
 

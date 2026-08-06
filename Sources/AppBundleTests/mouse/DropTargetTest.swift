@@ -274,6 +274,44 @@ final class DropTargetTest: XCTestCase {
         assertEquals(target.windowId, 2)
     }
 
+    /// The regression that motivated per-cell tab zones: a short window low on the screen (a
+    /// terminal in a bottom split) must offer tabbing at its own top edge, not just windows
+    /// whose cells touch the top of the workspace.
+    func testResolve_topEdgeOfLowerCell_offersNewTabGroup() async throws {
+        let workspace = Workspace.get(byName: name)
+        check(workspace.focusWorkspace()) // Make it the monitor's active workspace for hit-testing
+        let root = workspace.rootTilingContainer
+        let window1 = TestWindow.new(id: 1, parent: root)
+        let column = TilingContainer.newVTiles(parent: root, adaptiveWeight: 1)
+        TestWindow.new(id: 2, parent: column)
+        let bottomWindow = TestWindow.new(id: 3, parent: column)
+        try await workspace.layoutWorkspace()
+
+        let rect = try XCTUnwrap(bottomWindow.lastAppliedLayoutPhysicalRect)
+        let topEdge = CGPoint(x: rect.center.x, y: rect.minY + 1)
+        guard case .newTabGroup(let target)? = resolveDropTarget(topEdge, dragged: window1) else {
+            return XCTFail("expected .newTabGroup")
+        }
+        assertEquals(target.windowId, 3)
+    }
+
+    func testResolve_belowTheTabZone_isStillSplitUp() async throws {
+        let workspace = Workspace.get(byName: name)
+        check(workspace.focusWorkspace()) // Make it the monitor's active workspace for hit-testing
+        let root = workspace.rootTilingContainer
+        let window1 = TestWindow.new(id: 1, parent: root)
+        let window2 = TestWindow.new(id: 2, parent: root)
+        try await workspace.layoutWorkspace()
+
+        let rect = try XCTUnwrap(window2.lastAppliedLayoutPhysicalRect)
+        // Just under the tab band, still within the top zone of the cell
+        let belowBand = CGPoint(x: rect.center.x, y: rect.minY + CGFloat(config.glass.tabs.height) + 20)
+        guard case .split(let cell, .up)? = resolveDropTarget(belowBand, dragged: window1) else {
+            return XCTFail("expected .split(_, .up)")
+        }
+        assertEquals((cell as? Window)?.windowId, 2)
+    }
+
     func testResolve_topEdgeOverOwnCell_isNil() async throws {
         let workspace = Workspace.get(byName: name)
         check(workspace.focusWorkspace()) // Make it the monitor's active workspace for hit-testing

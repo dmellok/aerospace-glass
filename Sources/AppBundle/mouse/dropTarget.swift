@@ -46,11 +46,16 @@ func resolveDropTarget(_ point: CGPoint, dragged: TreeNode) -> DropTarget? {
     guard let cell = findDropCell(point, in: root) else { return nil }
     // Dropping a node onto its own subtree is meaningless
     if cell.parentsWithSelf.contains(dragged) { return nil }
-    // The tab zone: a band one bar tall along the top edge of the workspace. Dropping there tabs
-    // the dragged window with the cell under the cursor, creating the group if there is none yet —
-    // an existing group's own bar was already hit-tested above.
+    guard let rect = cell.lastAppliedLayoutVirtualRect ?? cell.lastAppliedLayoutPhysicalRect,
+          rect.width > 0, rect.height > 0 else { return nil }
+    // The tab zone: a band one bar tall along the top edge of every cell, wherever that cell sits
+    // on the screen. Dropping there tabs the dragged window with the cell, creating the group if
+    // there is none yet — an existing group's own bar was already hit-tested above. Skipped for
+    // cells too short to draw a bar, the same threshold the layout pass uses.
+    let barStrip = CGFloat(config.glass.tabs.height) + CGFloat(config.glass.tabs.spacing)
     if config.glass.tabs.enabled,
-       point.y < workspace.workspaceMonitor.visibleRectPaddedByOuterGaps.minY + CGFloat(config.glass.tabs.height)
+       rect.height > barStrip * 2,
+       point.y < rect.minY + CGFloat(config.glass.tabs.height)
     {
         switch cell.tilingTreeNodeCasesOrDie() {
             case .tilingContainer(let group):
@@ -60,8 +65,6 @@ func resolveDropTarget(_ point: CGPoint, dragged: TreeNode) -> DropTarget? {
         }
         return nil
     }
-    guard let rect = cell.lastAppliedLayoutVirtualRect ?? cell.lastAppliedLayoutPhysicalRect,
-          rect.width > 0, rect.height > 0 else { return nil }
 
     let u = (point.x - rect.minX) / rect.width
     let v = (point.y - rect.minY) / rect.height
