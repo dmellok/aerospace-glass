@@ -32,7 +32,7 @@ private func moveWithMouse(_ window: Window) async throws { // todo cover with t
         case .macosFullscreenWindowsContainer, .macosMinimizedWindowsContainer, .macosPopupWindowsContainer, .macosHiddenAppsWindowsContainer:
             return // Unconventional windows can't be moved with mouse
         case .tilingContainer:
-            moveTilingWindow(window)
+            try await moveTilingWindow(window)
         case .unbound: return
     }
 }
@@ -50,14 +50,35 @@ private func moveFloatingWindow(_ window: Window) async throws {
 /// resolves where a release would put it and renders that as the glass drop preview; the mutation
 /// itself happens on mouse-up in ``resetManipulatedWithMouseIfPossible``. This is what lets a drop
 /// join a tab group or slot into a split instead of merely swapping with whatever is underneath.
+///
+/// Ticks arrive for left/top-edge resizes too (they change the origin), so nothing destructive
+/// happens until the drag is confirmed as a move: the mouse traveled while the size stayed put.
 @MainActor
-private func moveTilingWindow(_ window: Window) {
+private func moveTilingWindow(_ window: Window) async throws {
     currentlyManipulatedWithMouseWindowId = window.windowId
+    if currentMouseDragKind == .resize { return } // The resize path owns this drag
+    let mouse = mouseLocation
+    guard let rect = try await window.getAxRect(.cancellable) else { return }
+    if mouseDragInitial?.windowId != window.windowId {
+        mouseDragInitial = (window.windowId, rect.width, rect.height, mouse)
+    }
+    guard let initial = mouseDragInitial else { return }
+    if currentMouseDragKind == nil {
+        if abs(rect.width - initial.width) > 5 || abs(rect.height - initial.height) > 5 {
+            currentMouseDragKind = .resize
+            return
+        }
+        if CGPoint(x: mouse.x - initial.mouse.x, y: mouse.y - initial.mouse.y).vectorLength > 10 {
+            currentMouseDragKind = .move
+        } else {
+            return // Too early to tell a title-bar drag from an edge resize
+        }
+    }
+    // Confirmed move. Only now is the layout rect dropped — the resize path needs it intact
     window.lastAppliedLayoutPhysicalRect = nil
-    let mouseLocation = mouseLocation
-    let target = resolveDropTarget(mouseLocation, dragged: window)
+    let target = resolveDropTarget(mouse, dragged: window)
     pendingDropTarget = target
-    GlassDropPreviewController.shared.update(point: mouseLocation, target: target)
+    GlassDropPreviewController.shared.update(point: mouse, target: target)
 }
 
 @MainActor

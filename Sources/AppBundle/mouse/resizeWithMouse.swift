@@ -28,14 +28,16 @@ func resetManipulatedWithMouseIfPossible() async throws {
     if let draggedWindowId = currentlyManipulatedWithMouseWindowId {
         currentlyManipulatedWithMouseWindowId = nil
         GlassDropPreviewController.shared.hide()
-        if let target = pendingDropTarget {
-            pendingDropTarget = nil
+        if currentMouseDragKind == .move, let target = pendingDropTarget {
             // The drop the drag ticks resolved. The scheduled refresh below normalizes and lays
             // out the mutated tree
             if let window = Window.get(byId: draggedWindowId), window.parent is TilingContainer {
                 applyDrop(target, dragged: window)
             }
         }
+        pendingDropTarget = nil
+        currentMouseDragKind = nil
+        mouseDragInitial = nil
         for workspace in Workspace.all {
             workspace.resetResizeWeightBeforeResizeRecursive()
         }
@@ -54,6 +56,9 @@ private func resizeWithMouse(_ window: Window) async throws { // todo cover with
              .macosPopupWindowsContainer, .macosHiddenAppsWindowsContainer:
             return // Nothing to do for floating, or unconventional windows
         case .tilingContainer:
+            if currentMouseDragKind == .move { return } // The move path owns this drag
+            currentMouseDragKind = .resize
+            GlassDropPreviewController.shared.hide()
             guard let rect = try await window.getAxRect(.cancellable) else { return }
             guard let lastAppliedLayoutRect = window.lastAppliedLayoutPhysicalRect else { return }
             let (lParent, lOwnIndex) = window.closestParent(hasChildrenInDirection: .left, withLayout: .tiles) ?? (nil, nil)
