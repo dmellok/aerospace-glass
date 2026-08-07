@@ -149,6 +149,10 @@ tones the picture is made of. Five roles are then filled:
 * *onSurface*, *onElevated* and *onAccent* — black or white, whichever stays legible on the surface
   it lands on.
 
+The tints are applied to suit `glass.tabs.style`: a flat bar gets them exactly as sampled, while a
+glass bar gets them as washes, since an opaque tint over the blur leaves nothing of the glass to
+see. Label colors are judged against the tint as it will actually be drawn, alpha included.
+
 `glass.theme.palette` decides how those are filled. Under `mono` only *surface* and *accent* are
 sampled and the others are arithmetic on *surface*, which is safe on any picture but makes the bar
 three brightnesses of one hue. Under `multi` each role takes a distinct tone the picture actually

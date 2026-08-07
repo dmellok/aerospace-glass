@@ -16,11 +16,24 @@ extension GlassConfig {
         // The bar stacks: strip, unselected tabs one step up, selected tab in the accent. Label
         // colors keep deferring to an explicit setting — those keys mean "derive it" when unset,
         // and the palette is just a better derivation.
-        themed.tabs.barTint = palette.surface
-        themed.tabs.inactiveTint = palette.elevated
-        themed.tabs.activeTint = palette.accent
-        themed.tabs.textColor = tabs.textColor ?? palette.onElevated
-        themed.tabs.activeTextColor = tabs.activeTextColor ?? palette.onAccent
+        //
+        // A glass bar needs those as washes, not fills: an opaque tint sits on top of the blur and
+        // there is nothing left of the glass to see. A flat bar wants them exactly as sampled,
+        // since nothing shows through it by definition.
+        switch tabs.style {
+            case .flat:
+                themed.tabs.barTint = palette.surface
+                themed.tabs.inactiveTint = palette.elevated
+                themed.tabs.activeTint = palette.accent
+            case .glass:
+                themed.tabs.barTint = palette.surface.withAlpha(0.3)
+                themed.tabs.inactiveTint = palette.elevated.withAlpha(0.34)
+                themed.tabs.activeTint = palette.accent.withAlpha(0.5)
+        }
+        // Legibility is judged against the tint as it will actually be drawn, alpha included — a
+        // wash over glass sits on a different backdrop than the same hue painted solid.
+        themed.tabs.textColor = tabs.textColor ?? themed.tabs.inactiveTint.legibleGlassColor
+        themed.tabs.activeTextColor = tabs.activeTextColor ?? themed.tabs.activeTint.legibleGlassColor
         themed.tabs.activeBorderColor = tabs.activeBorderColor ?? palette.accent
 
         // Focus is the accent; everything unfocused recedes into the surface it sits on.
