@@ -74,7 +74,7 @@ enum WallpaperTheme {
         // the bar still recedes rather than glowing.
         let darkest = buckets.first { luminance($0.color) < 0.22 }
             ?? buckets.first { luminance($0.color) < 0.4 }
-        let surfaceRGB = darkest?.color ?? scaled(buckets[0].color, 0.18)
+        let baseSurface = darkest?.color ?? scaled(buckets[0].color, 0.18)
 
         // The accent is the most colorful thing the picture offers in quantity: saturation earns
         // its place, but a single vivid pixel shouldn't beat a tone the wallpaper is built from.
@@ -91,30 +91,29 @@ enum WallpaperTheme {
         // Derived: one tone, arithmetic for the rest. Multi: distinct tones the picture actually
         // contains, so the bar's steps carry the wallpaper's own colour relationships rather than
         // three brightnesses of a single hue.
-        let derivedElevated = lighten(surfaceRGB, to: max(luminance(surfaceRGB) + 0.07, 0.12))
+        let derivedElevated = lighten(baseSurface, to: max(luminance(baseSurface) + 0.07, 0.12))
         var elevatedRGB = derivedElevated
         var secondaryRGB = lighten(derivedElevated, to: luminance(derivedElevated) + 0.16)
 
+        var surface = baseSurface
         if multi {
-            let distinct = representatives(buckets, minDistance: 0.22, limit: 8)
-            // A second surface: distinct from the strip, still dark enough to sit under a label,
-            // and not the accent — a bar whose two steps are both vivid stops being a value ramp.
-            elevatedRGB = distinct
-                .filter { distance($0, surfaceRGB) > 0.12 && luminance($0) < 0.5 && distance($0, accent) > 0.2 }
-                .min { abs(luminance($0) - luminance(surfaceRGB) - 0.1) < abs(luminance($1) - luminance(surfaceRGB) - 0.1) }
-                ?? derivedElevated
-            // The unfocused ring: present enough to read as a border, far enough from the accent
-            // that focus is still obvious at a glance.
-            secondaryRGB = distinct
-                .filter {
-                    distance($0, accent) > 0.25 && distance($0, surfaceRGB) > 0.2
-                        // Not the tone already spent on unselected tabs: two roles wearing one
-                        // colour is a palette with a hole in it.
-                        && distance($0, elevatedRGB) > 0.15 && luminance($0) > 0.25
-                }
-                .max { accentScore((count: 1, color: $0), 1) < accentScore((count: 1, color: $1), 1) }
-                ?? secondaryRGB
+            // Pick by hue and shade to fit the role, rather than hunting for buckets that already
+            // sit at the right brightness. A pale photograph contains no dark tones at all, so
+            // filtering by luminance throws its whole palette away and lands back on one hue.
+            let distinct = representatives(buckets, target: 5, limit: 8)
+            let pool = distinct.filter { distance($0, accent) > 0.15 }
+
+            if let first = pool.first {
+                let second = pool.first { distance($0, first) > 0.15 }
+                let third = pool.first { distance($0, first) > 0.2 && distance($0, second ?? first) > 0.15 }
+                // The strip recedes, unselected tabs sit a step above it, and the unfocused ring
+                // has to read against the desktop — three brightnesses, but each from its own hue.
+                surface = shade(first, to: 0.09)
+                elevatedRGB = shade(second ?? first, to: 0.19)
+                secondaryRGB = shade(third ?? second ?? first, to: 0.45)
+            }
         }
+        let surfaceRGB = surface
 
         return WallpaperPalette(
             surface: color(surfaceRGB, alpha: 1),
@@ -132,17 +131,31 @@ enum WallpaperTheme {
     /// all the same colour a shade apart and there is nothing to build a palette from.
     private static func representatives(
         _ buckets: [(count: Int, color: RGB)],
-        minDistance: Double,
+        target: Int,
         limit: Int,
     ) -> [RGB] {
-        var accepted: [RGB] = []
-        for bucket in buckets {
-            if accepted.count >= limit { break }
-            if accepted.allSatisfy({ distance($0, bucket.color) >= minDistance }) {
-                accepted.append(bucket.color)
+        // A low-contrast picture has every tone bunched together, so a fixed threshold returns one
+        // or two colors and the palette collapses. Loosen until the picture yields enough to work
+        // with, and accept that a genuinely flat wallpaper simply has fewer.
+        for minDistance in [0.22, 0.16, 0.12, 0.08, 0.05] {
+            var accepted: [RGB] = []
+            for bucket in buckets {
+                if accepted.count >= limit { break }
+                if accepted.allSatisfy({ distance($0, bucket.color) >= minDistance }) {
+                    accepted.append(bucket.color)
+                }
             }
+            if accepted.count >= target || minDistance == 0.05 { return accepted }
         }
-        return accepted
+        return []
+    }
+
+    /// Move a color to a target luminance in either direction, keeping its hue.
+    private static func shade(_ c: RGB, to target: Double) -> RGB {
+        let current = luminance(c)
+        guard current > 0.001 else { return (r: target, g: target, b: target) }
+        let factor = target / current
+        return (r: min(c.r * factor, 1), g: min(c.g * factor, 1), b: min(c.b * factor, 1))
     }
 
     private static func distance(_ a: RGB, _ b: RGB) -> Double {
