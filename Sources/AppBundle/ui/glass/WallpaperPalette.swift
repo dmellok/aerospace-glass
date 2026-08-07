@@ -14,8 +14,14 @@ struct WallpaperPalette {
     var elevated: GlassColor
     /// Focus: the selected tab, the border ring, the drop preview's outline.
     var accent: GlassColor
-    /// Labels on ``surface`` and ``elevated``.
+    /// A second colour from the picture, far enough from ``accent`` that focus stays obvious.
+    /// Used for the unfocused window ring.
+    var secondary: GlassColor
+    /// Labels on ``surface``.
     var onSurface: GlassColor
+    /// Labels on ``elevated``, which is a separate sampled tone in multi mode and can want the
+    /// opposite label colour to ``surface``.
+    var onElevated: GlassColor
     /// Labels on ``accent``, which is usually the lightest thing in the bar.
     var onAccent: GlassColor
 }
@@ -31,14 +37,14 @@ enum WallpaperTheme {
     /// Recomputed only when the wallpaper file changes. macOS posts no notification for that, so
     /// the URL and its modification date form the cache key and are rechecked on each refresh —
     /// two `stat`s, against decoding an image every layout pass.
-    static func palette() -> WallpaperPalette? {
+    static func palette(multi: Bool) -> WallpaperPalette? {
         guard let screen = NSScreen.main,
               let url = NSWorkspace.shared.desktopImageURL(for: screen)
         else { return nil }
         let modified = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
-        let key = "\(url.path)|\(modified?.timeIntervalSince1970 ?? 0)"
+        let key = "\(url.path)|\(modified?.timeIntervalSince1970 ?? 0)|\(multi)"
         if let cache, cache.key == key { return cache.palette }
-        let palette = sample(url)
+        let palette = sample(url, multi: multi)
         cache = (key, palette)
         return palette
     }
@@ -47,7 +53,7 @@ enum WallpaperTheme {
 
     // MARK: - Sampling
 
-    private static func sample(_ url: URL) -> WallpaperPalette? {
+    private static func sample(_ url: URL, multi: Bool) -> WallpaperPalette? {
         guard let pixels = thumbnailPixels(url, side: 96) else { return nil }
 
         // Bucket into a coarse cube. Wallpapers are photographs: exact colors each occur once, so
@@ -82,13 +88,66 @@ enum WallpaperTheme {
         // honest about the picture rather than inventing a hue that isn't there.
         let accent = accentRGB.map { saturate(lighten($0, to: 0.62), by: 1.25) } ?? (r: 0.86, g: 0.87, b: 0.92)
 
+        // Derived: one tone, arithmetic for the rest. Multi: distinct tones the picture actually
+        // contains, so the bar's steps carry the wallpaper's own colour relationships rather than
+        // three brightnesses of a single hue.
+        let derivedElevated = lighten(surfaceRGB, to: max(luminance(surfaceRGB) + 0.07, 0.12))
+        var elevatedRGB = derivedElevated
+        var secondaryRGB = lighten(derivedElevated, to: luminance(derivedElevated) + 0.16)
+
+        if multi {
+            let distinct = representatives(buckets, minDistance: 0.22, limit: 8)
+            // A second surface: distinct from the strip, still dark enough to sit under a label,
+            // and not the accent — a bar whose two steps are both vivid stops being a value ramp.
+            elevatedRGB = distinct
+                .filter { distance($0, surfaceRGB) > 0.12 && luminance($0) < 0.5 && distance($0, accent) > 0.2 }
+                .min { abs(luminance($0) - luminance(surfaceRGB) - 0.1) < abs(luminance($1) - luminance(surfaceRGB) - 0.1) }
+                ?? derivedElevated
+            // The unfocused ring: present enough to read as a border, far enough from the accent
+            // that focus is still obvious at a glance.
+            secondaryRGB = distinct
+                .filter {
+                    distance($0, accent) > 0.25 && distance($0, surfaceRGB) > 0.2
+                        // Not the tone already spent on unselected tabs: two roles wearing one
+                        // colour is a palette with a hole in it.
+                        && distance($0, elevatedRGB) > 0.15 && luminance($0) > 0.25
+                }
+                .max { accentScore((count: 1, color: $0), 1) < accentScore((count: 1, color: $1), 1) }
+                ?? secondaryRGB
+        }
+
         return WallpaperPalette(
             surface: color(surfaceRGB, alpha: 1),
-            elevated: color(lighten(surfaceRGB, to: max(luminance(surfaceRGB) + 0.07, 0.12)), alpha: 1),
+            elevated: color(elevatedRGB, alpha: 1),
             accent: color(accent, alpha: 1),
+            secondary: color(secondaryRGB, alpha: 1),
             onSurface: color(surfaceRGB, alpha: 1).legibleGlassColor,
+            onElevated: color(elevatedRGB, alpha: 1).legibleGlassColor,
             onAccent: color(accent, alpha: 1).legibleGlassColor,
         )
+    }
+
+    /// The picture's distinct tones, most common first: a bucket earns a place only if it is far
+    /// enough from every tone already accepted. Without that, the top buckets of a photograph are
+    /// all the same colour a shade apart and there is nothing to build a palette from.
+    private static func representatives(
+        _ buckets: [(count: Int, color: RGB)],
+        minDistance: Double,
+        limit: Int,
+    ) -> [RGB] {
+        var accepted: [RGB] = []
+        for bucket in buckets {
+            if accepted.count >= limit { break }
+            if accepted.allSatisfy({ distance($0, bucket.color) >= minDistance }) {
+                accepted.append(bucket.color)
+            }
+        }
+        return accepted
+    }
+
+    private static func distance(_ a: RGB, _ b: RGB) -> Double {
+        let dr = a.r - b.r, dg = a.g - b.g, db = a.b - b.b
+        return (dr * dr + dg * dg + db * db).squareRoot()
     }
 
     /// Decoded small: the palette only needs the picture's proportions, and a 6K desktop image

@@ -9,6 +9,7 @@ private let glassParser: [String: any ParserProtocol<GlassConfig>] = [
 
 private let glassThemeParser: [String: any ParserProtocol<GlassThemeConfig>] = [
     "from-wallpaper": Parser(\.fromWallpaper, parseBool),
+    "palette": Parser(\.palette, parseGlassThemePalette),
 ]
 
 private let glassBordersParser: [String: any ParserProtocol<GlassBordersConfig>] = [
@@ -91,6 +92,16 @@ private func parsePoints(_ raw: OrderedJson, _ backtrace: ConfigBacktrace) -> Re
         $0 >= 0
             ? .success(Double($0))
             : .failure(.init(backtrace, "Must not be negative"))
+    }
+}
+
+private func parseGlassThemePalette(
+    _ raw: OrderedJson,
+    _ backtrace: ConfigBacktrace,
+) -> ResOrConfigParseDiagnostic<GlassThemePalette> {
+    parseString(raw, backtrace).flatMap {
+        GlassThemePalette(rawValue: $0)
+            .toResult(.init(backtrace, "Can't parse theme palette '\($0)'. Expected 'mono' or 'multi'"))
     }
 }
 

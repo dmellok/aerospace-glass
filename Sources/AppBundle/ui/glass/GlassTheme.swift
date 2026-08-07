@@ -8,7 +8,9 @@ extension GlassConfig {
     /// stays a statement about the picture and this stays a statement about the decorations.
     @MainActor
     func themed() -> GlassConfig {
-        guard theme.fromWallpaper, let palette = WallpaperTheme.palette() else { return self }
+        guard theme.fromWallpaper,
+              let palette = WallpaperTheme.palette(multi: theme.palette == .multi)
+        else { return self }
         var themed = self
 
         // The bar stacks: strip, unselected tabs one step up, selected tab in the accent. Label
@@ -17,13 +19,13 @@ extension GlassConfig {
         themed.tabs.barTint = palette.surface
         themed.tabs.inactiveTint = palette.elevated
         themed.tabs.activeTint = palette.accent
-        themed.tabs.textColor = tabs.textColor ?? palette.onSurface
+        themed.tabs.textColor = tabs.textColor ?? palette.onElevated
         themed.tabs.activeTextColor = tabs.activeTextColor ?? palette.onAccent
         themed.tabs.activeBorderColor = tabs.activeBorderColor ?? palette.accent
 
         // Focus is the accent; everything unfocused recedes into the surface it sits on.
         themed.borders.activeColor = palette.accent
-        themed.borders.inactiveColor = palette.elevated.withAlpha(0.35)
+        themed.borders.inactiveColor = palette.secondary.withAlpha(0.55)
 
         // The preview stays mostly transparent whatever the palette says — it is drawn over the
         // layout it is describing, and a solid fill would hide the thing being previewed.

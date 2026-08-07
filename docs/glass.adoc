@@ -144,7 +144,19 @@ tones the picture is made of. Five roles are then filled:
   so a colour has to be both vivid and actually present to win. It marks focus: the selected tab,
   the border ring, the drop preview's outline. A greyscale wallpaper yields a light neutral rather
   than an invented hue.
-* *onSurface* and *onAccent* — black or white, whichever stays legible on the surface it lands on.
+* *secondary* — a tone far enough from both the accent and the strip to mark an unfocused window
+  without competing with focus. Only visible while `glass.borders.show-inactive` is on.
+* *onSurface*, *onElevated* and *onAccent* — black or white, whichever stays legible on the surface
+  it lands on.
+
+`glass.theme.palette` decides how those are filled. Under `mono` only *surface* and *accent* are
+sampled and the others are arithmetic on *surface*, which is safe on any picture but makes the bar
+three brightnesses of one hue. Under `multi` each role takes a distinct tone the picture actually
+contains: the buckets are walked most-common-first and one is accepted only when it is far enough
+from every tone already taken, then roles pick from that spread under their own constraints —
+*elevated* stays dark enough to sit under a label, *secondary* stays clear of the accent. A role
+with no candidate falls back to its `mono` value, so a flat or near-monochrome wallpaper degrades
+to `mono` rather than inventing colors.
 
 Sampling is cached against the wallpaper's path and modification date, so it costs two `stat` calls
 per refresh and re-runs only when the picture actually changes. When there is nothing to read — an
@@ -163,6 +175,7 @@ paste a color straight out of an existing `borders` setup.
 # colors and the preview accent while it is on; the keys that default to "derive it"
 # (tabs.text-color, tabs.active-text-color, tabs.active-border-color) still win when set.
 glass.theme.from-wallpaper = false
+glass.theme.palette = 'mono'           # or 'multi'
 
 glass.borders.enabled =        false   # draw borders at all
 glass.borders.width =          3       # total ring thickness; most of it is glass

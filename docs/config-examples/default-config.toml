@@ -88,6 +88,9 @@ gaps.outer.right =      0
 # Fills the tints, the accent and the label colors; sizes stay yours. Falls back to the
 # colors below when the wallpaper can't be sampled (an aerial video, an unreadable file).
 glass.theme.from-wallpaper = false
+# 'mono' derives the surfaces from one sampled tone; 'multi' samples a distinct tone for each of
+# the tab bar strip, unselected tabs, the accent, and the unfocused window ring.
+glass.theme.palette = 'mono'
 
 # A border around each tiled window, to show which one has focus.
 # Off by default: it costs one overlay panel per visible window.

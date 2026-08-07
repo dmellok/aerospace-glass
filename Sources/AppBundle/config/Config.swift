@@ -81,6 +81,18 @@ struct GlassConfig: ConvenienceMutable {
     var dropPreview: GlassDropPreviewConfig = GlassDropPreviewConfig()
 }
 
+/// How many of the wallpaper's colors the palette is built from.
+enum GlassThemePalette: String {
+    /// One sampled dark tone and one sampled accent; the second surface and the unfocused ring
+    /// are arithmetic on the first. Safe on any picture, but the bar is three brightnesses of a
+    /// single hue.
+    case mono
+    /// Each role gets a tone the picture actually contains, chosen to be distinct from the others,
+    /// so the decorations carry the wallpaper's own color relationships. Falls back to the derived
+    /// value per role when the picture has no distinct tone to offer it.
+    case multi
+}
+
 struct GlassThemeConfig: ConvenienceMutable {
     /// Sample the decoration colors from the desktop picture instead of taking them from the
     /// config. It fills the tints, the accent and the label colors; the sizes, and every key the
@@ -94,6 +106,9 @@ struct GlassThemeConfig: ConvenienceMutable {
     /// When the wallpaper can't be sampled — an aerial video, an unreadable file, a picture with
     /// no usable tones — every configured color is used unchanged.
     var fromWallpaper: Bool = false
+    /// `mono` derives the surfaces from one sampled tone; `multi` samples a distinct tone per role
+    /// — the tab bar strip, unselected tabs, the accent, and the unfocused window ring.
+    var palette: GlassThemePalette = .mono
 }
 
 struct GlassBordersConfig: ConvenienceMutable {

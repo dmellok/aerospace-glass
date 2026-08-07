@@ -129,6 +129,13 @@ tabs sit one step up from it, and the most colorful tone the picture offers *in 
 the accent — the selected tab, the border ring, the drop preview's outline. Label colors come from
 the luminance of whatever they land on, so they stay legible whatever the picture is.
 
+`glass.theme.palette` chooses how many of the picture's colors that uses. `mono` samples one dark
+tone and one accent, deriving the rest arithmetically — three brightnesses of a single hue. `multi`
+picks a genuinely distinct tone for each role: the strip, unselected tabs, the accent, and the
+unfocused window ring, so the bar carries the wallpaper's own color relationships. Each role falls
+back to the derived value when the picture has no distinct tone to offer it, which is what a flat
+or near-monochrome wallpaper gets.
+
 It only decodes a 96pt thumbnail, and only when the wallpaper file changes. A picture with no
 usable tones, or an aerial video with no still to read, leaves the configured colors alone.
 
@@ -187,6 +194,7 @@ pasted straight out of an existing `borders` setup.
 
 ```toml
 glass.theme.from-wallpaper = false     # sample every color below from the desktop picture
+glass.theme.palette =        'mono'    # or 'multi': a distinct sampled tone per role
 
 glass.borders.enabled =        false   # draw borders at all
 glass.borders.width =          3       # total ring thickness; most of it is glass
