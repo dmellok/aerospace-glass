@@ -133,9 +133,14 @@ final class MacApp: AbstractApp {
         // Performance optimization. If possible avoid doing AX requests
         // (important for apps which are slow at responding even such basic AX requests. E.g. Godot)
         // Beware of the macOS bug: https://github.com/nikitabobko/AeroSpace/issues/101
-        if (!NSScreen.screensHaveSeparateSpaces || monitors.count == 1) &&
-            (lastNativeFocusedWindowId == windowId || windowsCount == 1)
-        {
+        //
+        // `activate` focuses whichever window macOS currently considers the app's main one, which
+        // is only the window being asked for when the app has exactly one. `lastNativeFocusedWindowId`
+        // used to be accepted as evidence too, but it records what AeroSpace last *observed*, and
+        // the app's main window drifts from that on its own — a background window taking a link, an
+        // app reordering its own windows. Focusing a window of a multi-window app then activated a
+        // different window of the same app, which reads as focus being stolen.
+        if (!NSScreen.screensHaveSeparateSpaces || monitors.count == 1) && windowsCount == 1 {
             nsApp.activate(options: .activateIgnoringOtherApps)
         } else {
             MacApp.focusJob = withWindowAsync(windowId, .cancellable) { [nsApp] window, job in
