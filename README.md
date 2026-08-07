@@ -15,12 +15,19 @@ decorations upstream deliberately leaves out, and closes the remaining gaps betw
 Upstream declines window decorations on purpose — see
 [#85](https://github.com/nikitabobko/AeroSpace/issues/85) for borders and the project's
 "[non-values](https://github.com/nikitabobko/AeroSpace#non-values)" on ricing — and recommends
-running [JankyBorders](https://github.com/FelixKratz/JankyBorders) alongside it instead. That
-recommendation is good and this fork doesn't try to replace it: for borders alone, run
-JankyBorders. What's here is the tabbed layout and the drag-and-drop, which need to live inside
-the window manager because they read and rewrite its tree.
+running [JankyBorders](https://github.com/FelixKratz/JankyBorders) alongside it instead — still the
+right answer if borders are all you want, and the only one before macOS 26. This fork draws them
+in-process because the decorations it exists for — the tabbed layout, the drag-and-drop — have to
+read and rewrite AeroSpace's tree anyway, and a border that can see that tree can do things an
+outside tool can't.
 
 Full reference: [`docs/glass.adoc`](docs/glass.adoc).
+
+**License.** This fork is [GPL-3.0](LICENSE.txt). Upstream AeroSpace is MIT and stays that way —
+its copyright notice is kept verbatim in [`LICENSE-MIT-upstream.txt`](LICENSE-MIT-upstream.txt),
+and everything this fork takes from upstream remains available under MIT from
+[nikitabobko/AeroSpace](https://github.com/nikitabobko/AeroSpace). MIT permits redistributing a
+derivative under GPL; the copyleft applies to this fork's own additions.
 
 ---
 
@@ -104,18 +111,28 @@ one path or the other once the evidence is in — the size changing makes it a r
 travelling while the size holds still makes it a move — because a resize from a left or top edge
 moves the origin too and otherwise looks identical to a title-bar drag.
 
-**Borders** — an optional outline around each tiled window showing which has focus. Off by default;
-[JankyBorders](https://github.com/FelixKratz/JankyBorders) is the better tool for borders alone and
-is what these screenshots are running. The module stays for the cases it does handle differently:
-it reads AeroSpace's own tree, so it skips the windows parked off-screen for inactive workspaces
-and gives a tab group one border rather than one per stacked window; it draws above the window, so
-the macOS drop shadow can't fall across it; and the ring itself is Liquid Glass rather than a flat
-stroke.
+**Borders** — an optional ring around each tiled window showing which has focus. Off by default,
+since it costs one overlay panel per visible window. Four things follow from drawing it in-process:
+
+- The ring is **Liquid Glass**, tinted rather than filled. `glass.borders.stroke-width` splits the
+  width between a solid accent along the outer edge and glass for the rest — 0 is pure glass, equal
+  to `width` is a flat stroke.
+- It **draws above the window**, so the macOS drop shadow can't fall across it and dim it.
+- It reads AeroSpace's tree, so it **skips the windows parked off-screen** for inactive workspaces,
+  and a tab group gets one ring rather than one per stacked window.
+- `glass.borders.expand-gaps` **reserves room for it in the layout**, so two neighbouring rings
+  don't meet in the middle of the gap and read as one thick divider.
 
 Borders match each window's own corners. Windows disagree — on macOS 26 a Safari window is 26pt
 where a VS Code window is 16pt — so a single configured radius is wrong for some of them.
 `glass.borders.detect-corner-radius` asks the window server for the real value, leaving
 `corner-radius` as the fallback and `app-corner-radius` as the override.
+
+> Corner detection is [JankyBorders](https://github.com/FelixKratz/JankyBorders)' technique. That
+> `SLSWindowIteratorGetCornerRadii` exists, and that the honest way to use a private symbol is to
+> `dlsym` it behind an availability check rather than link it, both come from reading Felix Kratz's
+> source. The implementation here is independent and no code was taken — JankyBorders is GPL-3.0
+> and this is MIT — but the idea is his and it deserves saying so.
 
 No Screen Recording permission: the window server composites the blur, so it picks up other
 applications' windows through public AppKit alone. Corner detection is the one place a private

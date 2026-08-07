@@ -2,6 +2,7 @@
 :toc:
 
 This page documents the additions this fork makes on top of upstream AeroSpace.
+The fork is GPL-3.0; upstream AeroSpace is MIT and its notice is kept in `LICENSE-MIT-upstream.txt`.
 Everything here is inert unless you turn it on, so an upstream config keeps working unchanged.
 
 == The tabbed layout
@@ -244,7 +245,12 @@ and earlier they fall back to `NSVisualEffectView` blur materials. Either way th
 by the window server, so it picks up the windows of other applications without the Screen Recording
 permission.
 
-One private symbol is touched, and only for `glass.borders.detect-corner-radius`:
+One private symbol is touched, and only for `glass.borders.detect-corner-radius`. The technique —
+the symbol's existence, and resolving it with `dlsym` behind an availability check rather than
+linking it — comes from reading https://github.com/FelixKratz/JankyBorders[JankyBorders]. The
+implementation here is independent; no code was taken.
+
+
 `SLSWindowIteratorGetCornerRadii` reports a window's real corner radius, which is otherwise
 unknowable — windows disagree, so a single configured radius leaves the ring floating around some
 of them. It is resolved with `dlsym` at startup rather than linked, so a macOS release that removes
