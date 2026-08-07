@@ -104,14 +104,24 @@ one path or the other once the evidence is in — the size changing makes it a r
 travelling while the size holds still makes it a move — because a resize from a left or top edge
 moves the origin too and otherwise looks identical to a title-bar drag.
 
-**Borders** — an optional outline around each tiled window showing which has focus. Off by default,
-and worth leaving that way: [JankyBorders](https://github.com/FelixKratz/JankyBorders) does this
-better, and it's what these screenshots are running. The module stays because it reads AeroSpace's
-own tree, so it skips the windows parked off-screen for inactive workspaces and gives a tab group
-one border rather than one per stacked window. Niche, and not a reason to switch.
+**Borders** — an optional outline around each tiled window showing which has focus. Off by default;
+[JankyBorders](https://github.com/FelixKratz/JankyBorders) is the better tool for borders alone and
+is what these screenshots are running. The module stays for the cases it does handle differently:
+it reads AeroSpace's own tree, so it skips the windows parked off-screen for inactive workspaces
+and gives a tab group one border rather than one per stacked window; it draws above the window, so
+the macOS drop shadow can't fall across it; and the ring itself is Liquid Glass rather than a flat
+stroke.
 
-No private APIs and no Screen Recording permission: the window server composites the blur, so it
-picks up other applications' windows through public AppKit alone.
+Borders match each window's own corners. Windows disagree — on macOS 26 a Safari window is 26pt
+where a VS Code window is 16pt — so a single configured radius is wrong for some of them.
+`glass.borders.detect-corner-radius` asks the window server for the real value, leaving
+`corner-radius` as the fallback and `app-corner-radius` as the override.
+
+No Screen Recording permission: the window server composites the blur, so it picks up other
+applications' windows through public AppKit alone. Corner detection is the one place a private
+symbol is touched — `SLSWindowIteratorGetCornerRadii`, resolved with `dlsym` at startup rather
+than linked, so a macOS release that drops it falls back to the configured radius instead of
+failing to launch. Set `detect-corner-radius = false` to avoid it entirely.
 
 ### i3-style floating
 
@@ -169,7 +179,8 @@ pasted straight out of an existing `borders` setup.
 ```toml
 glass.borders.enabled =        false   # draw borders at all
 glass.borders.width =          3
-glass.borders.corner-radius =  11      # macOS 26 windows are ~11pt rounded
+glass.borders.detect-corner-radius = true  # match each window's own corners (see below)
+glass.borders.corner-radius =  11      # fallback when detection is off or unavailable
 glass.borders.app-corner-radius = { 'org.alacritty' = 0 }  # per-app overrides by bundle id
 glass.borders.padding =        0       # outward offset; 0 hugs the window edge
 glass.borders.show-inactive =  true

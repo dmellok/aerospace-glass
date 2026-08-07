@@ -88,9 +88,11 @@ gaps.outer.right =      0
 # Off by default: it costs one overlay panel per visible window.
 glass.borders.enabled =        false
 glass.borders.width =          3
-glass.borders.corner-radius =  11
+# Match each window's own corner radius rather than using one value for all of them
+glass.borders.detect-corner-radius = true
+glass.borders.corner-radius =  11      # fallback when detection is off or unavailable
 glass.borders.padding =        0
-# Per-app corner radius overrides by app bundle id, for windows with non-standard corners
+# Per-app corner radius overrides by app bundle id. These beat the detected radius.
 glass.borders.app-corner-radius = {}
 glass.borders.show-inactive =  true
 glass.borders.active-color =   '#8CC7FF'

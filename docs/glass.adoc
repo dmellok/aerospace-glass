@@ -138,9 +138,13 @@ paste a color straight out of an existing `borders` setup.
 ----
 glass.borders.enabled =        false   # draw borders at all
 glass.borders.width =          3       # stroke thickness
-glass.borders.corner-radius =  11      # macOS 26 windows are about 11pt rounded
-# Per-app radius overrides by bundle id, for windows with non-standard corners (custom-chrome
-# terminals, Electron apps, ...). Find an app's id with:  aerospace list-windows --all --format '%{app-bundle-id} %{app-name}'
+# Ask the window server for each window's own corner radius. Windows genuinely differ — on
+# macOS 26 a Safari window is 26pt where a VS Code window is 16pt — so one value can't fit all.
+glass.borders.detect-corner-radius = true
+glass.borders.corner-radius =  11      # fallback, used when detection is off or unavailable
+# Per-app radius overrides by bundle id. These beat the detected radius, for windows whose
+# reported corners don't suit their chrome.
+# Find an app's id with:  aerospace list-windows --all --format '%{app-bundle-id} %{app-name}'
 glass.borders.app-corner-radius = { 'com.apple.Terminal' = 11, 'org.alacritty' = 0 }
 glass.borders.padding =        0       # outward offset; 0 hugs the window edge
 glass.borders.show-inactive =  true    # also outline unfocused windows
@@ -182,8 +186,15 @@ their cell grid), and the border follows where the window actually ended up.
 
 On macOS 26 the panels use Liquid Glass (`NSGlassEffectView` / SwiftUI `glassEffect`). On macOS 25
 and earlier they fall back to `NSVisualEffectView` blur materials. Either way the blur is composited
-by the window server, so it picks up the windows of other applications without any private API and
-without the Screen Recording permission.
+by the window server, so it picks up the windows of other applications without the Screen Recording
+permission.
+
+One private symbol is touched, and only for `glass.borders.detect-corner-radius`:
+`SLSWindowIteratorGetCornerRadii` reports a window's real corner radius, which is otherwise
+unknowable — windows disagree, so a single configured radius leaves the ring floating around some
+of them. It is resolved with `dlsym` at startup rather than linked, so a macOS release that removes
+it degrades to `glass.borders.corner-radius` rather than breaking the app. Setting
+`detect-corner-radius = false` avoids the symbol entirely.
 
 Known limitations:
 

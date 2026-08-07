@@ -84,11 +84,19 @@ struct GlassBordersConfig: ConvenienceMutable {
     var enabled: Bool = false
     /// Stroke thickness in points
     var width: Double = 3
-    /// Corner radius of the stroke. macOS windows are ~10pt rounded on Tahoe
+    /// Corner radius of the stroke, used when the window's own radius can't be determined.
+    /// macOS windows are ~10pt rounded on Tahoe
     var cornerRadius: Double = 11
-    /// Per-app overrides for `cornerRadius`, keyed by app bundle id. Most windows share the system
-    /// radius, but apps that draw their own chrome (terminals, Electron apps with custom frames)
-    /// can have square or unusual corners that make the standard ring float around them.
+    /// Ask the window server for each window's actual corner radius instead of using
+    /// `cornerRadius` for all of them. Windows genuinely differ — on macOS 26 a Safari window is
+    /// 26pt where a VS Code window is 16pt — so one configured value is wrong for some of them.
+    ///
+    /// This reads a private SkyLight symbol, resolved at runtime rather than linked. Where it
+    /// isn't available the configured radius is used, so turning this off costs nothing but the
+    /// accuracy. See ``WindowCornerRadius``.
+    var detectCornerRadius: Bool = true
+    /// Per-app overrides, keyed by app bundle id. These win over both the detected radius and
+    /// `cornerRadius`, so an app whose reported radius doesn't suit its chrome can be corrected.
     var appCornerRadius: [String: Double] = [:]
     /// Outward offset from the window frame. 0 means the stroke sits flush against the window
     /// edge; raise it to leave a sliver of air between the window and its border

@@ -116,7 +116,13 @@ final class GlassOverlayManager {
             let rect = frames.actualRect(of: spec.windowId, applied: spec.rect) ?? spec.rect
             let outset = CGFloat(cfg.padding + cfg.width)
             let frame = rect.inset(by: -outset).toCocoaRect
-            let radius = spec.appBundleId.flatMap { cfg.appCornerRadius[$0] } ?? cfg.cornerRadius
+            // An explicit per-app override wins over what the window server reports, which in turn
+            // beats the one configured radius — that last one is only right by coincidence, since
+            // windows disagree about their corners.
+            let detected = cfg.detectCornerRadius ? WindowCornerRadius.of(spec.windowId) : nil
+            let radius = spec.appBundleId.flatMap { cfg.appCornerRadius[$0] }
+                ?? detected.map(Double.init)
+                ?? cfg.cornerRadius
             let view = GlassBorderView(
                 cornerRadius: CGFloat(radius) + outset,
                 lineWidth: CGFloat(cfg.width),
@@ -132,6 +138,7 @@ final class GlassOverlayManager {
         for windowId in stale {
             borderPanels.removeValue(forKey: windowId)?.orderOut(nil)
         }
+        WindowCornerRadius.forgetAllExcept(specs.map(\.windowId).toSet())
         liveBorderSpecs = specs
         frames.prefetch(specs.map { (windowId: $0.windowId, applied: $0.rect) }) { [weak self] in
             // A window turned out to sit somewhere other than where the layout pass put it.

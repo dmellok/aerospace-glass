@@ -10,6 +10,7 @@ private let glassBordersParser: [String: any ParserProtocol<GlassBordersConfig>]
     "enabled": Parser(\.enabled, parseBool),
     "width": Parser(\.width, parsePoints),
     "corner-radius": Parser(\.cornerRadius, parsePoints),
+    "detect-corner-radius": Parser(\.detectCornerRadius, parseBool),
     "app-corner-radius": Parser(\.appCornerRadius, parseAppCornerRadius),
     "padding": Parser(\.padding, parsePoints),
     "active-color": Parser(\.activeColor, parseGlassColor),
