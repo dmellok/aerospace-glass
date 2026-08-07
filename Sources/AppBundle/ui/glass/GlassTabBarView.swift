@@ -20,11 +20,15 @@ struct GlassTabBarView: View {
     var cornerRadius: CGFloat
     var fontSize: CGFloat
     var showIcons: Bool
+    /// Flat paints the tints literally; glass blurs the backdrop behind them.
+    var isFlat: Bool
     var barTint: Color
     var inactiveTint: Color
     var activeTint: Color
     var activeForeground: Color
     var inactiveForeground: Color
+    /// Hairline around the selected tab. nil keeps the default white hairline.
+    var activeBorder: Color?
     var onSelect: (UInt32) -> ()
     var onClose: (UInt32) -> ()
     var onDragChanged: (UInt32) -> ()
@@ -44,6 +48,7 @@ struct GlassTabBarView: View {
                     showIcons: showIcons,
                     fill: item.isActive ? activeTint : inactiveTint,
                     foreground: item.isActive ? activeForeground : inactiveForeground,
+                    activeBorder: activeBorder,
                     onSelect: { onSelect(item.id) },
                     onClose: { onClose(item.id) },
                     onDragChanged: { onDragChanged(item.id) },
@@ -53,7 +58,7 @@ struct GlassTabBarView: View {
         }
         .padding(3)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .modifier(GlassStripBackground(shape: strip, tint: barTint))
+        .modifier(GlassStripBackground(shape: strip, tint: barTint, isFlat: isFlat))
     }
 }
 
@@ -64,6 +69,7 @@ private struct GlassTabView: View {
     var showIcons: Bool
     var fill: Color
     var foreground: Color
+    var activeBorder: Color?
     var onSelect: () -> ()
     var onClose: () -> ()
     var onDragChanged: () -> ()
@@ -105,7 +111,7 @@ private struct GlassTabView: View {
             // The active tab gets a hairline instead of a heavier fill: visible on any backdrop
             // without breaking the value ramp the three tints establish
             if item.isActive {
-                shape.strokeBorder(.white.opacity(0.25), lineWidth: 1)
+                shape.strokeBorder(activeBorder ?? .white.opacity(0.25), lineWidth: 1)
             }
         }
         .overlay(alignment: .leading) {
@@ -152,9 +158,14 @@ private struct GlassTabView: View {
 private struct GlassStripBackground<S: Shape>: ViewModifier {
     var shape: S
     var tint: Color
+    var isFlat: Bool
 
     func body(content: Content) -> some View {
-        if #available(macOS 26.0, *) {
+        if isFlat {
+            // No blur and nothing composited through: the strip is exactly the configured color,
+            // which is the point — a tint chosen for glass turns muddy once it stops being a wash.
+            content.background(shape.fill(tint))
+        } else if #available(macOS 26.0, *) {
             content.glassEffect(.regular.tint(tint), in: shape)
         } else {
             content

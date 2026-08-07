@@ -178,7 +178,9 @@ pasted straight out of an existing `borders` setup.
 
 ```toml
 glass.borders.enabled =        false   # draw borders at all
-glass.borders.width =          3
+glass.borders.width =          3       # total ring thickness; most of it is glass
+glass.borders.stroke-width =   1       # of that, solid accent along the outer edge
+glass.borders.expand-gaps =    true    # grow the gaps so neighbouring rings don't meet
 glass.borders.detect-corner-radius = true  # match each window's own corners (see below)
 glass.borders.corner-radius =  11      # fallback when detection is off or unavailable
 glass.borders.app-corner-radius = { 'org.alacritty' = 0 }  # per-app overrides by bundle id
@@ -197,6 +199,9 @@ glass.tabs.show-icons =    true
 glass.tabs.bar-tint =      '#00000038'  # the ramp: dim strip,
 glass.tabs.inactive-tint = '#00000047'  # unselected a shade darker,
 glass.tabs.active-tint =   '#FFFFFF59'  # selected lightest
+glass.tabs.text-color =          '#FFFFFFEB'  # unset: black or white, by fill luminance
+glass.tabs.active-text-color =   '#FFFFFFEB'
+glass.tabs.active-border-color = '#8CC7FF'    # hairline marking the selected tab
 
 glass.drop-preview.enabled =       true # the blurred drag-and-drop overlay
 glass.drop-preview.corner-radius = 10

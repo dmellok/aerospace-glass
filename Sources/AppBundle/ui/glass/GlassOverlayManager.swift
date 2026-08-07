@@ -126,6 +126,7 @@ final class GlassOverlayManager {
             let view = GlassBorderView(
                 cornerRadius: CGFloat(radius) + outset,
                 lineWidth: CGFloat(cfg.width),
+                strokeWidth: CGFloat(cfg.strokeWidth),
                 color: Color((spec.isFocused ? cfg.activeColor : cfg.inactiveColor).toNSColor),
             )
             let panel = borderPanels.getOrPut(spec.windowId) {
@@ -207,11 +208,14 @@ final class GlassOverlayManager {
             cornerRadius: CGFloat(cfg.cornerRadius),
             fontSize: CGFloat(cfg.fontSize),
             showIcons: cfg.showIcons,
+            isFlat: cfg.style == .flat,
             barTint: Color(cfg.barTint.toNSColor),
             inactiveTint: Color(cfg.inactiveTint.toNSColor),
             activeTint: Color(cfg.activeTint.toNSColor),
-            activeForeground: Color(cfg.activeTint.legibleForeground),
-            inactiveForeground: Color(cfg.inactiveTint.legibleForeground),
+            // A configured label color wins; otherwise it is derived from the fill it sits on.
+            activeForeground: Color((cfg.activeTextColor ?? cfg.activeTint.legibleGlassColor).toNSColor),
+            inactiveForeground: Color((cfg.textColor ?? cfg.inactiveTint.legibleGlassColor).toNSColor),
+            activeBorder: cfg.activeBorderColor.map { Color($0.toNSColor) },
             onSelect: { windowId in
                 Task.startUnstructured { @MainActor in
                     await focusWindowFromTabBar(windowId)

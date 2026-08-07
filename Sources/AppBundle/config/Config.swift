@@ -82,8 +82,16 @@ struct GlassConfig: ConvenienceMutable {
 
 struct GlassBordersConfig: ConvenienceMutable {
     var enabled: Bool = false
-    /// Stroke thickness in points
+    /// Total ring thickness in points. Most of it is tinted glass; see ``strokeWidth``
     var width: Double = 3
+    /// Points of solid accent along the ring's outer edge, out of ``width``. The rest stays glass,
+    /// so raising this trades refraction for a harder edge — at `width` the ring is a flat stroke.
+    /// Clamped to `width`.
+    var strokeWidth: Double = 1
+    /// Grow the layout gaps so neighbouring windows' rings don't meet. Inner gaps take twice the
+    /// ring's outward reach (both sides have one), outer gaps take it once. Only has an effect
+    /// while borders are drawn.
+    var expandGaps: Bool = true
     /// Corner radius of the stroke, used when the window's own radius can't be determined.
     /// macOS windows are ~10pt rounded on Tahoe
     var cornerRadius: Double = 11
@@ -107,8 +115,20 @@ struct GlassBordersConfig: ConvenienceMutable {
     var showInactive: Bool = true
 }
 
+/// How the tab bar is painted.
+enum GlassTabsStyle: String {
+    /// Liquid Glass on macOS 26, blur materials below it. The tints are composited over whatever
+    /// shows through, so they read as washes rather than as the colors you typed.
+    case glass
+    /// Flat fills, nothing showing through. The tints are drawn exactly as configured, so give
+    /// them full alpha (`'#1E1E2E'`) unless you want the app content behind to bleed in.
+    case flat
+}
+
 struct GlassTabsConfig: ConvenienceMutable {
     var enabled: Bool = true
+    /// `glass` blurs the backdrop; `flat` paints the configured colors literally
+    var style: GlassTabsStyle = .glass
     /// Height of the tab bar strip reserved above a `tabbed` container
     var height: Double = 30
     /// Gap above the bar, between the top edge of the tile and the strip
@@ -125,6 +145,15 @@ struct GlassTabsConfig: ConvenienceMutable {
     var barTint: GlassColor = GlassColor(red: 0, green: 0, blue: 0, alpha: 0.22)
     var inactiveTint: GlassColor = GlassColor(red: 0, green: 0, blue: 0, alpha: 0.28)
     var activeTint: GlassColor = GlassColor(red: 1, green: 1, blue: 1, alpha: 0.35)
+    /// Label color of the selected tab. Unset picks black or white from the fill's luminance, which
+    /// is right for most themes — the decorations float over arbitrary app content, so the system
+    /// appearance says nothing about what a label will sit on. Set it to take that over.
+    var activeTextColor: GlassColor? = nil
+    /// Label color of unselected tabs. Unset derives it from ``inactiveTint`` the same way.
+    var textColor: GlassColor? = nil
+    /// Hairline around the selected tab, which is what marks the selection on a backdrop where the
+    /// fills alone don't carry. Unset uses a white hairline.
+    var activeBorderColor: GlassColor? = nil
 }
 
 /// The overlay shown while a window or tab is dragged: the workspace's splits as faint outlines,

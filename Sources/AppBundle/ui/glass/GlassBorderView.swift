@@ -4,6 +4,10 @@ import SwiftUI
 struct GlassBorderView: View {
     var cornerRadius: CGFloat
     var lineWidth: CGFloat
+    /// Points of solid accent drawn along the ring's outer edge. The remaining width stays tinted
+    /// glass, so this trades glass for definition: at `lineWidth` the ring is a flat stroke and no
+    /// glass shows at all, at 0 it is pure glass with nothing to anchor it against a busy backdrop.
+    var strokeWidth: CGFloat
     var color: Color
 
     private var ring: RoundedRingShape {
@@ -13,6 +17,9 @@ struct GlassBorderView: View {
     private var outline: RoundedRectangle {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
     }
+
+    /// The accent, clamped so it can never exceed the ring it is drawn inside.
+    private var accent: CGFloat { min(max(strokeWidth, 0), lineWidth) }
 
     var body: some View {
         Group {
@@ -26,14 +33,25 @@ struct GlassBorderView: View {
                 outline
                     .glassEffect(.regular.tint(color), in: outline)
                     .mask(ring.fill(style: FillStyle(eoFill: true)))
-                    // At a few points wide the glass reads as neutral grey and the tint is lost, so
-                    // the accent color is stroked on top. The glass underneath still supplies the
-                    // refracted edge that makes the border sit in the macOS 26 visual language.
-                    .overlay(outline.inset(by: lineWidth / 2).stroke(color, lineWidth: lineWidth))
+                    // A hairline of the accent along the outer edge. Glass alone reads as neutral
+                    // grey against a busy backdrop and the tint is lost; a stroke the full width of
+                    // the ring hides the glass entirely. Keeping it thin leaves the refraction
+                    // visible while still naming the focus color.
+                    .overlay {
+                        if accent > 0 {
+                            outline.inset(by: accent / 2).stroke(color, lineWidth: accent)
+                        }
+                    }
             } else {
+                // No Liquid Glass here, so the blur material is the whole effect and the accent is
+                // laid over it at the same proportion.
                 ring
                     .fill(.ultraThinMaterial, style: FillStyle(eoFill: true))
-                    .overlay(ring.fill(color, style: FillStyle(eoFill: true)))
+                    .overlay {
+                        if accent > 0 {
+                            outline.inset(by: accent / 2).stroke(color, lineWidth: accent)
+                        }
+                    }
             }
         }
         .allowsHitTesting(false)

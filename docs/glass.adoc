@@ -137,7 +137,13 @@ paste a color straight out of an existing `borders` setup.
 [source,toml]
 ----
 glass.borders.enabled =        false   # draw borders at all
-glass.borders.width =          3       # stroke thickness
+glass.borders.width =          3       # total ring thickness; most of it is glass
+# Of that width, the solid accent along the ring's outer edge. The rest stays tinted glass, so
+# stroke-width = width gives a flat stroke and no glass shows at all.
+glass.borders.stroke-width =   1
+# Grow the layout gaps so two neighbouring windows' rings don't meet in the middle of the gap.
+# Inner gaps gain twice the ring's outward reach, outer gaps gain it once.
+glass.borders.expand-gaps =    true
 # Ask the window server for each window's own corner radius. Windows genuinely differ — on
 # macOS 26 a Safari window is 26pt where a VS Code window is 16pt — so one value can't fit all.
 glass.borders.detect-corner-radius = true
@@ -165,6 +171,10 @@ glass.tabs.show-icons =    true        # show each window's app icon in its tab
 glass.tabs.bar-tint =      '#00000038'
 glass.tabs.inactive-tint = '#00000047'
 glass.tabs.active-tint =   '#FFFFFF59'
+# Label colors. Unset picks black or white from the fill's luminance, which suits most themes.
+glass.tabs.text-color =          '#FFFFFFEB'   # unselected tabs
+glass.tabs.active-text-color =   '#FFFFFFEB'   # the selected tab
+glass.tabs.active-border-color = '#8CC7FF'     # hairline marking the selected tab
 
 glass.drop-preview.enabled =       true
 glass.drop-preview.corner-radius = 10

@@ -68,16 +68,23 @@ struct ResolvedGaps {
     }
 
     @MainActor init(gaps: Gaps, monitor: any Monitor) {
+        // A border is drawn outside the window frame, so without room reserved for it the rings of
+        // two neighbouring windows meet in the middle of the gap and read as one thick divider.
+        // An inner gap separates two windows and needs the reach twice over; an outer gap has a
+        // window on one side only.
+        let border = config.glass.borders
+        let reach = border.enabled && border.expandGaps ? Int((border.padding + border.width).rounded(.up)) : 0
+
         inner = .init(
-            vertical: gaps.inner.vertical.getValue(for: monitor),
-            horizontal: gaps.inner.horizontal.getValue(for: monitor),
+            vertical: gaps.inner.vertical.getValue(for: monitor) + 2 * reach,
+            horizontal: gaps.inner.horizontal.getValue(for: monitor) + 2 * reach,
         )
 
         outer = .init(
-            left: gaps.outer.left.getValue(for: monitor),
-            bottom: gaps.outer.bottom.getValue(for: monitor),
-            top: gaps.outer.top.getValue(for: monitor),
-            right: gaps.outer.right.getValue(for: monitor),
+            left: gaps.outer.left.getValue(for: monitor) + reach,
+            bottom: gaps.outer.bottom.getValue(for: monitor) + reach,
+            top: gaps.outer.top.getValue(for: monitor) + reach,
+            right: gaps.outer.right.getValue(for: monitor) + reach,
         )
     }
 }

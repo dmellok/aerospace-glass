@@ -9,6 +9,8 @@ private let glassParser: [String: any ParserProtocol<GlassConfig>] = [
 private let glassBordersParser: [String: any ParserProtocol<GlassBordersConfig>] = [
     "enabled": Parser(\.enabled, parseBool),
     "width": Parser(\.width, parsePoints),
+    "stroke-width": Parser(\.strokeWidth, parsePoints),
+    "expand-gaps": Parser(\.expandGaps, parseBool),
     "corner-radius": Parser(\.cornerRadius, parsePoints),
     "detect-corner-radius": Parser(\.detectCornerRadius, parseBool),
     "app-corner-radius": Parser(\.appCornerRadius, parseAppCornerRadius),
@@ -20,12 +22,16 @@ private let glassBordersParser: [String: any ParserProtocol<GlassBordersConfig>]
 
 private let glassTabsParser: [String: any ParserProtocol<GlassTabsConfig>] = [
     "enabled": Parser(\.enabled, parseBool),
+    "style": Parser(\.style, parseGlassTabsStyle),
     "height": Parser(\.height, parsePoints),
     "padding": Parser(\.padding, parsePoints),
     "spacing": Parser(\.spacing, parsePoints),
     "corner-radius": Parser(\.cornerRadius, parsePoints),
     "font-size": Parser(\.fontSize, parsePoints),
     "show-icons": Parser(\.showIcons, parseBool),
+    "text-color": Parser(\.textColor, parseOptionalGlassColor),
+    "active-text-color": Parser(\.activeTextColor, parseOptionalGlassColor),
+    "active-border-color": Parser(\.activeBorderColor, parseOptionalGlassColor),
     "bar-tint": Parser(\.barTint, parseGlassColor),
     "inactive-tint": Parser(\.inactiveTint, parseGlassColor),
     "active-tint": Parser(\.activeTint, parseGlassColor),
@@ -77,6 +83,25 @@ private func parsePoints(_ raw: OrderedJson, _ backtrace: ConfigBacktrace) -> Re
             ? .success(Double($0))
             : .failure(.init(backtrace, "Must not be negative"))
     }
+}
+
+private func parseGlassTabsStyle(
+    _ raw: OrderedJson,
+    _ backtrace: ConfigBacktrace,
+) -> ResOrConfigParseDiagnostic<GlassTabsStyle> {
+    parseString(raw, backtrace).flatMap {
+        GlassTabsStyle(rawValue: $0)
+            .toResult(.init(backtrace, "Can't parse tab bar style '\($0)'. Expected 'glass' or 'flat'"))
+    }
+}
+
+/// A color key that is allowed to stay unset, so the decoration can fall back to a derived value
+/// rather than to some arbitrary default written into the config schema.
+private func parseOptionalGlassColor(
+    _ raw: OrderedJson,
+    _ backtrace: ConfigBacktrace,
+) -> ResOrConfigParseDiagnostic<GlassColor?> {
+    parseGlassColor(raw, backtrace).map { Optional($0) }
 }
 
 /// Accepts `#RRGGBB`, `#RRGGBBAA` and JankyBorders-style `0xAARRGGBB`, so a color can be copied

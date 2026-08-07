@@ -87,7 +87,12 @@ gaps.outer.right =      0
 # A border around each tiled window, to show which one has focus.
 # Off by default: it costs one overlay panel per visible window.
 glass.borders.enabled =        false
-glass.borders.width =          3
+glass.borders.width =          3       # total ring thickness; most of it is glass
+# Of that width, the solid accent drawn along the outer edge. The rest stays tinted glass, so
+# raising this to `width` gives a flat stroke and hides the glass entirely.
+glass.borders.stroke-width =   1
+# Grow the layout gaps so two neighbouring windows' rings don't meet in the middle
+glass.borders.expand-gaps =    true
 # Match each window's own corner radius rather than using one value for all of them
 glass.borders.detect-corner-radius = true
 glass.borders.corner-radius =  11      # fallback when detection is off or unavailable
@@ -112,6 +117,11 @@ glass.tabs.show-icons =    true
 glass.tabs.bar-tint =      '#00000038'
 glass.tabs.inactive-tint = '#00000047'
 glass.tabs.active-tint =   '#FFFFFF59'
+# Label colors. Unset (the default) picks black or white from the fill's luminance.
+# glass.tabs.text-color =          '#FFFFFFEB'
+# glass.tabs.active-text-color =   '#FFFFFFEB'
+# Hairline marking the selected tab. Unset uses a white hairline.
+# glass.tabs.active-border-color = '#8CC7FF'
 
 # The overlay shown while a window or tab is dragged: the workspace's splits as
 # faint outlines, the slot the drop would land in as blurred glass.
