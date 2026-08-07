@@ -17,6 +17,7 @@ final class MacApp: AbstractApp {
     private var thread: Thread?
     private var setFrameJobs: [UInt32: RunLoopJob] = [:]
     @MainActor private static var focusJob: RunLoopJob? = nil
+    @MainActor private static var focusVerification: Task<Void, Never>? = nil
 
     /*conforms*/ var name: String? { nsApp.localizedName }
     /*conforms*/ var execPath: String? { nsApp.executableURL?.path }
@@ -128,8 +129,21 @@ final class MacApp: AbstractApp {
     }
 
     @MainActor func nativeFocus(_ windowId: UInt32) {
+        nativeFocus(windowId, allowRetry: true)
+    }
+
+    /// Focusing a window of an app that isn't frontmost is a race: the AX raise says which window
+    /// should be main, and activating the app makes macOS restore whichever window *it* still holds
+    /// as main. When macOS wins, focus lands on a sibling window — sometimes one parked off-screen
+    /// on another workspace, which drags AeroSpace there with it.
+    ///
+    /// The race can't be removed, so it is checked instead: shortly after asking, look at where
+    /// focus actually landed and ask once more if it went to the wrong window of this app.
+    @MainActor private func nativeFocus(_ windowId: UInt32, allowRetry: Bool) {
         if serverArgs.isReadOnly { return }
         MacApp.focusJob?.cancel()
+        MacApp.focusVerification?.cancel()
+        if allowRetry { verifyFocusLanded(on: windowId) }
         // Performance optimization. If possible avoid doing AX requests
         // (important for apps which are slow at responding even such basic AX requests. E.g. Godot)
         // Beware of the macOS bug: https://github.com/nikitabobko/AeroSpace/issues/101
@@ -149,6 +163,25 @@ final class MacApp: AbstractApp {
                 AXUIElementPerformAction(window, kAXRaiseAction as CFString)
                 nsApp.activate(options: .activateIgnoringOtherApps)
             }
+        }
+    }
+
+    /// Ask the app where focus actually landed, and ask once more if macOS restored a different
+    /// window of its own. Bounded to a single retry: the second attempt runs with `allowRetry`
+    /// false, so a window that genuinely refuses focus can't turn this into a loop.
+    @MainActor private func verifyFocusLanded(on windowId: UInt32) {
+        MacApp.focusVerification = Task.startUnstructured { @MainActor [weak self] in
+            // Long enough for the activation to have settled, short enough that a wrong window
+            // never becomes something you can act on.
+            try? await Task.sleep(for: .milliseconds(150))
+            guard let self, !Task.isCancelled else { return }
+            // Focus moving to a different app is the user, not this bug. Dragging them back would
+            // be the very thing being fixed here.
+            guard self.nsApp.isActive else { return }
+            guard let landed = try? await self.getFocusedWindow(.nonCancellable),
+                  landed.windowId != windowId
+            else { return }
+            self.nativeFocus(windowId, allowRetry: false)
         }
     }
 
