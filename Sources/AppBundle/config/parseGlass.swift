@@ -1,9 +1,14 @@
 import Common
 
 private let glassParser: [String: any ParserProtocol<GlassConfig>] = [
+    "theme": Parser(\.theme, parseGlassTheme),
     "borders": Parser(\.borders, parseGlassBorders),
     "tabs": Parser(\.tabs, parseGlassTabs),
     "drop-preview": Parser(\.dropPreview, parseGlassDropPreview),
+]
+
+private let glassThemeParser: [String: any ParserProtocol<GlassThemeConfig>] = [
+    "from-wallpaper": Parser(\.fromWallpaper, parseBool),
 ]
 
 private let glassBordersParser: [String: any ParserProtocol<GlassBordersConfig>] = [
@@ -47,6 +52,10 @@ private let glassDropPreviewParser: [String: any ParserProtocol<GlassDropPreview
 
 func parseGlass(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext) -> GlassConfig {
     parseTable(raw, GlassConfig(), glassParser, backtrace, &c)
+}
+
+private func parseGlassTheme(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext) -> GlassThemeConfig {
+    parseTable(raw, GlassThemeConfig(), glassThemeParser, backtrace, &c)
 }
 
 private func parseGlassBorders(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext) -> GlassBordersConfig {

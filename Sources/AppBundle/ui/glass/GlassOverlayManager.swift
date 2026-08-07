@@ -106,7 +106,7 @@ final class GlassOverlayManager {
     // MARK: - Borders
 
     private func syncBorders(_ specs: [BorderSpec]) {
-        let cfg = config.glass.borders
+        let cfg = config.glass.themed().borders
         var stale = Set(borderPanels.keys)
         for spec in specs {
             stale.remove(spec.windowId)
@@ -193,7 +193,7 @@ final class GlassOverlayManager {
     }
 
     private func tabBarView(_ spec: TabBarSpec) -> GlassTabBarView {
-        let cfg = config.glass.tabs
+        let cfg = config.glass.themed().tabs
         let items = spec.windowIds.map { windowId -> GlassTabItem in
             let window = Window.get(byId: windowId)
             return GlassTabItem(

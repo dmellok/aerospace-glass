@@ -75,9 +75,25 @@ struct FocusFollowsMouse: ConvenienceMutable {
 
 /// Appearance of the native macOS glass decorations that this fork draws on top of managed windows.
 struct GlassConfig: ConvenienceMutable {
+    var theme: GlassThemeConfig = GlassThemeConfig()
     var borders: GlassBordersConfig = GlassBordersConfig()
     var tabs: GlassTabsConfig = GlassTabsConfig()
     var dropPreview: GlassDropPreviewConfig = GlassDropPreviewConfig()
+}
+
+struct GlassThemeConfig: ConvenienceMutable {
+    /// Sample the decoration colors from the desktop picture instead of taking them from the
+    /// config. It fills the tints, the accent and the label colors; the sizes, and every key the
+    /// palette has no opinion about, are still yours.
+    ///
+    /// While this is on, the palette owns the tints, the border colors and the drop preview's
+    /// accent — setting those keys has no effect. The keys that default to "derive it"
+    /// (`tabs.text-color`, `tabs.active-text-color`, `tabs.active-border-color`) still win when
+    /// set, so labels can be pinned without giving up the sampled surfaces.
+    ///
+    /// When the wallpaper can't be sampled — an aerial video, an unreadable file, a picture with
+    /// no usable tones — every configured color is used unchanged.
+    var fromWallpaper: Bool = false
 }
 
 struct GlassBordersConfig: ConvenienceMutable {

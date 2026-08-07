@@ -84,6 +84,11 @@ gaps.outer.right =      0
 # On macOS 26 these use Liquid Glass, older releases fall back to the classic blur materials.
 # Sizes are whole points. Colors accept '#RRGGBB', '#RRGGBBAA' or JankyBorders-style '0xAARRGGBB'.
 
+# Sample every decoration color from the desktop picture instead of setting them here.
+# Fills the tints, the accent and the label colors; sizes stay yours. Falls back to the
+# colors below when the wallpaper can't be sampled (an aerial video, an unreadable file).
+glass.theme.from-wallpaper = false
+
 # A border around each tiled window, to show which one has focus.
 # Off by default: it costs one overlay panel per visible window.
 glass.borders.enabled =        false

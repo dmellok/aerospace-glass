@@ -28,7 +28,7 @@ final class GlassDropPreviewController {
         }
         let (highlight, caret) = target.flatMap(highlightGeometry) ?? (nil, nil)
 
-        let cfg = config.glass.dropPreview
+        let cfg = config.glass.themed().dropPreview
         let view = GlassDropPreviewView(
             cells: cells.map { $0.relative(to: origin) },
             highlight: highlight.map { $0.relative(to: origin) },

@@ -127,6 +127,29 @@ Because this implementation reads AeroSpace's own tree, it simply doesn't draw t
 
 In a `tabbed` container only the visible window is given a border, since the others share its rect.
 
+== Theming from the wallpaper
+
+`glass.theme.from-wallpaper = true` takes the decoration colors from the desktop picture rather than
+from the config.
+
+The picture is decoded to a 96pt thumbnail and its colors bucketed into a coarse cube — wallpapers
+are photographs, so no exact color repeats and counting them individually says nothing about which
+tones the picture is made of. Five roles are then filled:
+
+* *surface* — the most common tone darker than 22% luminance, which the tab bar strip uses. A
+  picture with no dark region at all has its dominant tone darkened instead, so the bar still
+  recedes rather than glowing.
+* *elevated* — surface raised a step, for unselected tabs.
+* *accent* — the tone scoring highest on saturation weighted by how much of the picture it covers,
+  so a colour has to be both vivid and actually present to win. It marks focus: the selected tab,
+  the border ring, the drop preview's outline. A greyscale wallpaper yields a light neutral rather
+  than an invented hue.
+* *onSurface* and *onAccent* — black or white, whichever stays legible on the surface it lands on.
+
+Sampling is cached against the wallpaper's path and modification date, so it costs two `stat` calls
+per refresh and re-runs only when the picture actually changes. When there is nothing to read — an
+aerial video, an unreadable file — every configured color is used unchanged.
+
 [#configuration]
 == Configuration
 
@@ -136,6 +159,11 @@ paste a color straight out of an existing `borders` setup.
 
 [source,toml]
 ----
+# Sample every color below from the desktop picture. The palette owns the tints, the border
+# colors and the preview accent while it is on; the keys that default to "derive it"
+# (tabs.text-color, tabs.active-text-color, tabs.active-border-color) still win when set.
+glass.theme.from-wallpaper = false
+
 glass.borders.enabled =        false   # draw borders at all
 glass.borders.width =          3       # total ring thickness; most of it is glass
 # Of that width, the solid accent along the ring's outer edge. The rest stays tinted glass, so

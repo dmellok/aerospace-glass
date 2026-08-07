@@ -123,6 +123,15 @@ symbol is touched — `SLSWindowIteratorGetCornerRadii`, resolved with `dlsym` a
 than linked, so a macOS release that drops it falls back to the configured radius instead of
 failing to launch. Set `detect-corner-radius = false` to avoid it entirely.
 
+**Theming from the wallpaper.** `glass.theme.from-wallpaper = true` samples the desktop picture and
+maps it onto the decorations: the tab bar strip takes the picture's dominant dark tone, unselected
+tabs sit one step up from it, and the most colorful tone the picture offers *in quantity* becomes
+the accent — the selected tab, the border ring, the drop preview's outline. Label colors come from
+the luminance of whatever they land on, so they stay legible whatever the picture is.
+
+It only decodes a 96pt thumbnail, and only when the wallpaper file changes. A picture with no
+usable tones, or an aerial video with no still to read, leaves the configured colors alone.
+
 ### i3-style floating
 
 Upstream's `layout floating` detaches a window from the tiling tree but then leaves it out of
@@ -177,6 +186,8 @@ type). Colors accept `#RRGGBB`, `#RRGGBBAA`, or JankyBorders-style `0xAARRGGBB`,
 pasted straight out of an existing `borders` setup.
 
 ```toml
+glass.theme.from-wallpaper = false     # sample every color below from the desktop picture
+
 glass.borders.enabled =        false   # draw borders at all
 glass.borders.width =          3       # total ring thickness; most of it is glass
 glass.borders.stroke-width =   1       # of that, solid accent along the outer edge
