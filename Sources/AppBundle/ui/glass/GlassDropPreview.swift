@@ -114,16 +114,8 @@ final class GlassDropPreviewController {
     /// The insertion caret between two tabs. Tab geometry mirrors ``GlassTabBarView``: an HStack
     /// with 3pt padding and 3pt spacing dividing the bar into equal-width tabs.
     private func caretRect(in bar: Rect, tabCount: Int, index: Int) -> Rect? {
-        guard tabCount > 0 else { return nil }
-        let pad: CGFloat = 3
-        let spacing: CGFloat = 3
-        let tabWidth = (bar.width - 2 * pad - spacing * CGFloat(tabCount - 1)) / CGFloat(tabCount)
-        guard tabWidth > 0 else { return nil }
-        let x: CGFloat = switch index {
-            case 0: bar.minX + pad
-            case tabCount...: bar.maxX - pad
-            default: bar.minX + pad + CGFloat(index) * (tabWidth + spacing) - spacing / 2
-        }
+        let layout = GlassTabLayout(barMinX: bar.minX, barWidth: bar.width, count: tabCount)
+        guard let x = layout.caretX(index) else { return nil }
         return Rect(topLeftX: x - 1.5, topLeftY: bar.minY + 4, width: 3, height: bar.height - 8)
     }
 }

@@ -168,6 +168,11 @@ struct GlassTabsConfig: ConvenienceMutable {
     var spacing: Double = 4
     var cornerRadius: Double = 10
     var fontSize: Double = 12
+    /// Give every tab the same fixed ``width`` instead of dividing the bar between them. Tabs still
+    /// shrink once they stop fitting, the way a browser narrows its tabs rather than overflowing.
+    var fixedWidth: Bool = false
+    /// Width of one tab in points while ``fixedWidth`` is on. Ignored otherwise.
+    var width: Double = 180
     /// Show each window's app icon in its tab
     var showIcons: Bool = true
     /// The three fills form a value ramp: the strip is dim, unselected tabs sit a shade darker

@@ -123,8 +123,8 @@ private func resolveTabBarTarget(_ point: CGPoint, in container: TilingContainer
     if container.layout == .tabbed, let bar = container.lastAppliedTabBarRect, bar.contains(point) {
         let count = container.children.count
         guard count > 0, bar.width > 0 else { return nil }
-        let index = Int(((point.x - bar.minX) / bar.width * CGFloat(count)).rounded())
-        return .tabBar(group: container, insertIndex: min(max(index, 0), count))
+        let layout = GlassTabLayout(barMinX: bar.minX, barWidth: bar.width, count: count)
+        return .tabBar(group: container, insertIndex: layout.insertIndex(atX: point.x))
     }
     // Descend only into visible children: in a stacking container the hidden children overlap the
     // visible one, and a hidden nested group's bar must not swallow the drop meant for what's on top

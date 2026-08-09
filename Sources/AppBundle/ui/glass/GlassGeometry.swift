@@ -47,3 +47,55 @@ extension GlassColor {
             : GlassColor(red: 1, green: 1, blue: 1, alpha: 0.92)
     }
 }
+
+/// Where the tabs sit inside a bar.
+///
+/// Three things need this and must agree: the bar draws the tabs, the drag logic turns a cursor
+/// position into an insertion index, and the preview draws the caret at that index. They used to
+/// each assume tabs divide the bar equally, which stops being true the moment tabs have a fixed
+/// width, so the arithmetic lives here once.
+@MainActor
+struct GlassTabLayout {
+    /// Inset of the tab row from the bar's edges, matching the bar view's padding.
+    static let inset: CGFloat = 3
+    /// Gap between neighbouring tabs.
+    static let spacing: CGFloat = 3
+
+    let barMinX: CGFloat
+    let barMaxX: CGFloat
+    let count: Int
+    /// Width of one tab. Fixed-width tabs still shrink once they no longer fit, the way a browser
+    /// narrows its tabs rather than overflowing the bar.
+    let slotWidth: CGFloat
+
+    init(barMinX: CGFloat, barWidth: CGFloat, count: Int) {
+        self.barMinX = barMinX
+        self.barMaxX = barMinX + barWidth
+        self.count = count
+        let content = max(barWidth - Self.inset * 2, 0)
+        let equal = count > 0
+            ? max((content - Self.spacing * CGFloat(count - 1)) / CGFloat(count), 0)
+            : content
+        let cfg = config.glass.tabs
+        slotWidth = cfg.fixedWidth ? min(CGFloat(cfg.width), equal) : equal
+    }
+
+    func slotOrigin(_ index: Int) -> CGFloat {
+        barMinX + Self.inset + CGFloat(index) * (slotWidth + Self.spacing)
+    }
+
+    /// The gap the cursor is nearest, as an index into the children.
+    func insertIndex(atX x: CGFloat) -> Int {
+        guard count > 0, slotWidth > 0 else { return 0 }
+        let offset = x - barMinX - Self.inset
+        let index = Int((offset / (slotWidth + Self.spacing)).rounded())
+        return min(max(index, 0), count)
+    }
+
+    /// The caret drawn in the gap at `index`, or nil when there is no room to draw one.
+    func caretX(_ index: Int) -> CGFloat? {
+        guard count > 0, slotWidth > 0 else { return nil }
+        if index <= 0 { return barMinX + Self.inset }
+        return min(slotOrigin(index) - Self.spacing / 2, barMaxX - Self.inset)
+    }
+}

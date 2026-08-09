@@ -119,6 +119,10 @@ glass.tabs.padding =       0
 glass.tabs.spacing =       4
 glass.tabs.corner-radius = 10
 glass.tabs.font-size =     12
+# Give every tab the same width instead of dividing the bar between them. Fixed tabs still
+# shrink once too many of them share the bar, rather than overflowing it.
+glass.tabs.fixed-width =   false
+glass.tabs.width =         180     # width of one tab while fixed-width is on
 glass.tabs.show-icons =    true
 # The three fills form a value ramp: dim strip, unselected tabs a shade darker, selected lightest.
 # Label colors are derived from these, so text stays legible if you retune them.

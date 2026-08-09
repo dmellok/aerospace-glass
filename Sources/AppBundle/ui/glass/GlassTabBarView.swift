@@ -20,6 +20,8 @@ struct GlassTabBarView: View {
     var cornerRadius: CGFloat
     var fontSize: CGFloat
     var showIcons: Bool
+    /// Width of one tab, or nil to divide the bar between them.
+    var fixedWidth: CGFloat?
     /// Flat paints the tints literally; glass blurs the backdrop behind them.
     var isFlat: Bool
     var barTint: Color
@@ -39,13 +41,14 @@ struct GlassTabBarView: View {
     }
 
     var body: some View {
-        HStack(spacing: 3) {
+        HStack(spacing: GlassTabLayout.spacing) {
             ForEach(items) { item in
                 GlassTabView(
                     item: item,
                     cornerRadius: max(cornerRadius - 3, 2),
                     fontSize: fontSize,
                     showIcons: showIcons,
+                    fixedWidth: fixedWidth,
                     fill: item.isActive ? activeTint : inactiveTint,
                     foreground: item.isActive ? activeForeground : inactiveForeground,
                     activeBorder: activeBorder,
@@ -55,8 +58,10 @@ struct GlassTabBarView: View {
                     onDragEnded: { onDragEnded(item.id, $0) },
                 )
             }
+            // Fixed-width tabs leave the rest of the bar empty rather than stretching into it.
+            if fixedWidth != nil { Spacer(minLength: 0) }
         }
-        .padding(3)
+        .padding(GlassTabLayout.inset)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .modifier(GlassStripBackground(shape: strip, tint: barTint, isFlat: isFlat))
     }
@@ -67,6 +72,8 @@ private struct GlassTabView: View {
     var cornerRadius: CGFloat
     var fontSize: CGFloat
     var showIcons: Bool
+    /// Width of one tab, or nil to divide the bar between them.
+    var fixedWidth: CGFloat?
     var fill: Color
     var foreground: Color
     var activeBorder: Color?
@@ -100,7 +107,9 @@ private struct GlassTabView: View {
         // Symmetric padding keeps icon+title centered while staying clear of the close button
         // anchored at the leading edge
         .padding(.horizontal, iconSide + 8)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // maxWidth rather than width: a fixed tab still gives way once too many of them share the
+        // bar, which is what keeps them from overflowing it.
+        .frame(maxWidth: fixedWidth ?? .infinity, maxHeight: .infinity)
         .background(
             shape.fill(fill)
                 // A hovered tab lifts one step up the bar's value ramp, so the bar answers

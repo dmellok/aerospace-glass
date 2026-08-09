@@ -208,6 +208,7 @@ final class GlassOverlayManager {
             cornerRadius: CGFloat(cfg.cornerRadius),
             fontSize: CGFloat(cfg.fontSize),
             showIcons: cfg.showIcons,
+            fixedWidth: cfg.fixedWidth ? CGFloat(cfg.width) : nil,
             isFlat: cfg.style == .flat,
             barTint: Color(cfg.barTint.toNSColor),
             inactiveTint: Color(cfg.inactiveTint.toNSColor),

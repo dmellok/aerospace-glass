@@ -209,6 +209,10 @@ glass.tabs.padding =       0           # gap above the bar, between the top of t
 glass.tabs.spacing =       4           # gap between the strip and the windows below
 glass.tabs.corner-radius = 10
 glass.tabs.font-size =     12
+# Give every tab the same width rather than dividing the bar between them. Fixed tabs still
+# shrink once too many share the bar, the way a browser narrows its tabs instead of overflowing.
+glass.tabs.fixed-width =   false
+glass.tabs.width =         180     # width of one tab while fixed-width is on
 glass.tabs.show-icons =    true        # show each window's app icon in its tab
 
 # The three fills form a value ramp: the strip is dim, unselected tabs sit a shade darker against

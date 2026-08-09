@@ -34,6 +34,8 @@ private let glassTabsParser: [String: any ParserProtocol<GlassTabsConfig>] = [
     "spacing": Parser(\.spacing, parsePoints),
     "corner-radius": Parser(\.cornerRadius, parsePoints),
     "font-size": Parser(\.fontSize, parsePoints),
+    "fixed-width": Parser(\.fixedWidth, parseBool),
+    "width": Parser(\.width, parsePoints),
     "show-icons": Parser(\.showIcons, parseBool),
     "text-color": Parser(\.textColor, parseOptionalGlassColor),
     "active-text-color": Parser(\.activeTextColor, parseOptionalGlassColor),
