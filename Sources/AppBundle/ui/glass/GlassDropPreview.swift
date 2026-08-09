@@ -13,7 +13,9 @@ final class GlassDropPreviewController {
 
     private init() {}
 
-    func update(point: CGPoint, target: DropTarget?) {
+    /// `dragged` lets the preview tell a reorder inside a bar from a drop that restructures the
+    /// tree. Pass it whenever it's known; nil just means the full preview.
+    func update(point: CGPoint, target: DropTarget?, dragged: TreeNode? = nil) {
         guard TrayMenuModel.shared.isEnabled, config.glass.dropPreview.enabled else {
             hide()
             return
@@ -22,11 +24,21 @@ final class GlassDropPreviewController {
         let workspace = monitor.activeWorkspace
         let origin = monitor.visibleRect
 
+        // Dragging a tab within the bar it already belongs to only moves it among its siblings:
+        // the layout doesn't change, so sketching every cell and filling the target says nothing
+        // and buries the bar - the thing being reordered - under the preview. The caret is the
+        // whole story there.
+        var isReorderWithinBar = false
+        if case .tabBar(let group, _) = target, let dragged, dragged.parent === group {
+            isReorderWithinBar = true
+        }
+
         var cells: [Rect] = []
-        if !workspace.rootTilingContainer.isEffectivelyEmpty {
+        if !isReorderWithinBar, !workspace.rootTilingContainer.isEffectivelyEmpty {
             collectCells(workspace.rootTilingContainer, &cells)
         }
-        let (highlight, caret) = target.flatMap(highlightGeometry) ?? (nil, nil)
+        var (highlight, caret) = target.flatMap(highlightGeometry) ?? (nil, nil)
+        if isReorderWithinBar { highlight = nil }
 
         let cfg = config.glass.themed().dropPreview
         let view = GlassDropPreviewView(

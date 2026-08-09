@@ -270,7 +270,7 @@ private func tabDragChanged(windowId: UInt32, group: TilingContainer?) {
     guard isLeftMouseButtonDown else { return } // A stray tick delivered after the drop
     guard let dragged = tabDragNode(windowId: windowId, group: group) else { return }
     let point = mouseLocation
-    GlassDropPreviewController.shared.update(point: point, target: resolveDropTarget(point, dragged: dragged))
+    GlassDropPreviewController.shared.update(point: point, target: resolveDropTarget(point, dragged: dragged), dragged: dragged)
 }
 
 @MainActor
@@ -280,7 +280,18 @@ private func tabDragEnded(windowId: UInt32, group: TilingContainer?, translation
     guard let guardd = RunSessionGuard.isServerEnabled else { return }
     try? await runLightSession(.glassTabBarDrop, guardd) {
         guard let group, let dragged = tabDragNode(windowId: windowId, group: group) else { return }
-        if let target = resolveDropTarget(mouseLocation, dragged: dragged) {
+        let target = resolveDropTarget(mouseLocation, dragged: dragged)
+        // Shuffling tabs among their own siblings changes the order and nothing else. Whichever tab
+        // was showing keeps showing, so that reordering the bar can't pull the rug out from under
+        // the window being worked in. Every other drop moves the window somewhere new, and focus
+        // should follow it there.
+        var isReorderWithinBar = false
+        if case .tabBar(let targetGroup, _) = target, dragged.parent === targetGroup {
+            isReorderWithinBar = true
+        }
+        let wasShowing = group.mostRecentChild
+
+        if let target {
             applyDrop(target, dragged: dragged)
         } else if abs(translation.height) > tabTearOffThreshold {
             // Dropped on nothing in particular but clearly outside the bar: the browser tear-off
@@ -289,7 +300,14 @@ private func tabDragEnded(windowId: UInt32, group: TilingContainer?, translation
         } else {
             return // A drop on its own tab or another dead zone: the tab snaps back
         }
-        _ = window.focusWindow()
+
+        if isReorderWithinBar {
+            // Rebinding the node during the move marks it most recent, so the tab that was showing
+            // has to be put back on top explicitly.
+            if let wasShowing, wasShowing.parent === group { wasShowing.markAsMostRecentChild() }
+        } else {
+            _ = window.focusWindow()
+        }
     }
 }
 
@@ -307,7 +325,7 @@ private func tabDragNode(windowId: UInt32, group: TilingContainer?) -> TreeNode?
 private func groupDragChanged(group: TilingContainer?) {
     guard let group, group.isBound, group.layout == .tabbed else { return }
     let point = mouseLocation
-    GlassDropPreviewController.shared.update(point: point, target: resolveDropTarget(point, dragged: group))
+    GlassDropPreviewController.shared.update(point: point, target: resolveDropTarget(point, dragged: group), dragged: group)
 }
 
 @MainActor
