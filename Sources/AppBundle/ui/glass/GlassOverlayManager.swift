@@ -47,6 +47,12 @@ final class GlassOverlayManager {
         }
     }
 
+    /// Hand the manager a frame someone else has already read, so the borders can be drawn from it
+    /// now rather than after the asynchronous fetch returns. See ``WindowFrameCache/record``.
+    func noteObservedFrame(windowId: UInt32, applied: Rect, actual: Rect) {
+        frames.record(windowId: windowId, applied: applied, actual: actual)
+    }
+
     func hideAll() {
         for panel in borderPanels.values { panel.orderOut(nil) }
         for panel in tabPanels.values { panel.orderOut(nil) }

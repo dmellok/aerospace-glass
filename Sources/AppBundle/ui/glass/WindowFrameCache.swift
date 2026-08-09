@@ -12,6 +12,17 @@ final class WindowFrameCache {
     private var cache: [UInt32: (applied: Rect, actual: Rect)] = [:]
     private var inFlight: Set<UInt32> = []
 
+    /// Record a frame that was read outside the fetch loop.
+    ///
+    /// A live mouse resize reshapes the window many times a second and already reads the true
+    /// frame on every tick, while the fetch here is asynchronous and lands a beat later - which is
+    /// the border visibly trailing the window edge. Handing that read straight over closes the
+    /// gap. It is stored against the applied rect like any other entry, so the next layout pass
+    /// invalidates it on the same terms.
+    func record(windowId: UInt32, applied: Rect, actual: Rect) {
+        cache[windowId] = (applied, actual)
+    }
+
     /// The last known actual frame, valid only while the layout pass still targets `applied`.
     func actualRect(of windowId: UInt32, applied: Rect) -> Rect? {
         guard let entry = cache[windowId], entry.applied.approximatelyEquals(applied) else { return nil }

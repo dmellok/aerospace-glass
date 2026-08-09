@@ -61,6 +61,14 @@ private func resizeWithMouse(_ window: Window) async throws { // todo cover with
             GlassDropPreviewController.shared.hide()
             guard let rect = try await window.getAxRect(.cancellable) else { return }
             guard let lastAppliedLayoutRect = window.lastAppliedLayoutPhysicalRect else { return }
+            // This tick already knows the window's real frame. The border is drawn at the end of
+            // this same session, so give it the frame now instead of letting it draw the previous
+            // one and catch up when the asynchronous fetch returns.
+            GlassOverlayManager.shared.noteObservedFrame(
+                windowId: window.windowId,
+                applied: lastAppliedLayoutRect,
+                actual: rect,
+            )
             let (lParent, lOwnIndex) = window.closestParent(hasChildrenInDirection: .left, withLayout: .tiles) ?? (nil, nil)
             let (dParent, dOwnIndex) = window.closestParent(hasChildrenInDirection: .down, withLayout: .tiles) ?? (nil, nil)
             let (uParent, uOwnIndex) = window.closestParent(hasChildrenInDirection: .up, withLayout: .tiles) ?? (nil, nil)
