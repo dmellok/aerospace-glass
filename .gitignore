@@ -28,3 +28,7 @@ xcshareddata/
 
 # Local demo/recording rig and post drafts — not part of the fork
 /demo/
+
+# Local release staging
+/.release-pkg/
+/aerospace-glass-*.zip
