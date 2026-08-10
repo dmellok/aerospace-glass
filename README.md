@@ -203,6 +203,18 @@ Two further fixes, both cases where the command did the opposite of what it says
 
 ---
 
+### The settings panel
+
+**Glass settings…** in the menu bar opens a panel for every `glass.*` key: the wallpaper theming,
+the tab bar, the borders and the drag preview.
+
+Changes apply to the running config as you make them, so a colour or a slider is judged against
+real windows rather than a swatch. Nothing reaches disk until **Save to config** is pressed, and
+the file is edited a line at a time: a key already present has its value replaced where it sits,
+keeping its position, its alignment and its comment, and only settings that differ from the
+defaults are ever added. The previous contents are copied to `~/.aerospace.toml.bak` first.
+**Revert** re-reads the file, discarding whatever the panel was trying out.
+
 ### Configuration
 
 All keys optional, all under `glass.*`. Sizes are whole points (AeroSpace's TOML parser has no float

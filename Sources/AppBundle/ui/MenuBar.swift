@@ -58,6 +58,7 @@ public func menuBar(viewModel: TrayMenuModel) -> some Scene { // todo should it 
                 }
             }.keyboardShortcut("E", modifiers: .command)
             getExperimentalUISettingsMenu(viewModel: viewModel)
+            Button("Glass settings...") { GlassSettingsWindow.open() }
             openConfigButton()
             reloadConfigButton(warningsAsErrors: false)
         } else {

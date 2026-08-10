@@ -167,6 +167,22 @@ Sampling is cached against the wallpaper's path and modification date, so it cos
 per refresh and re-runs only when the picture actually changes. When there is nothing to read — an
 aerial video, an unreadable file — every configured color is used unchanged.
 
+== The settings panel
+
+*Glass settings...* in the menu bar opens a panel covering every `glass.*` key.
+
+Edits apply to the running config immediately, which is the point: a tint or a slider is worth
+judging against real windows, not a swatch. The file on disk is untouched until *Save to config*.
+
+Saving edits the file rather than rewriting it. A key that is already there has its value replaced
+in place, so it keeps its position, the padding lining it up in a column, and its trailing comment.
+Keys the config never mentioned are only added when they differ from the default, so opening the
+panel and saving can't grow the file with settings you never chose. The three colors that mean
+"derive it" when unset stay unset unless you give them a value. The previous contents are copied to
+a sibling `.bak` first.
+
+*Revert* re-reads the file and discards anything the panel was trying out.
+
 [#configuration]
 == Configuration
 
