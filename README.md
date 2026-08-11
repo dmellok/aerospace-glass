@@ -203,6 +203,29 @@ Two further fixes, both cases where the command did the opposite of what it says
 
 ---
 
+### Alerts
+
+A window that wants attention takes a different colour, on its ring and on its tab. Two signals,
+kept separate because they mean different things:
+
+- `glass.alerts.on-sheet` (on by default) — the window is **blocked on a dialog**. Read from the
+  window's own accessibility children; the documented `AXSheets` attribute comes back empty for the
+  sheets AppKit actually puts up and `AXModal` stays false on the parent, so the child with role
+  `AXSheet` is the signal that works. Checked for on-screen windows only, asynchronously.
+- `glass.alerts.on-badge` (off by default) — the app's **Dock icon carries a badge**. Read from the
+  Dock's own accessibility tree, since no notification exists for a badge changing. This is per
+  *app*, so every window of a badged app is flagged, and a permanently badged app would glow all
+  day, which is why it's off.
+
+The colours default to the complement of the focused border and the selected tab, so an alert stays
+obviously distinct however the theme is tuned — including a palette sampled from a wallpaper. Set
+`glass.alerts.border-color` and `glass.alerts.tab-tint` to pin them. An alerting window is ringed
+even when `show-inactive` is off: being seen from a window you aren't in is the whole point.
+
+Neither signal catches a notification banner, and "app requests attention" isn't exposed to other
+processes at all, so this is "that window is blocked" and "that app has unreads", not every kind of
+notification.
+
 ### The settings panel
 
 **Glass settings…** in the menu bar opens a panel for every `glass.*` key: the wallpaper theming,

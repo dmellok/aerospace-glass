@@ -167,6 +167,32 @@ Sampling is cached against the wallpaper's path and modification date, so it cos
 per refresh and re-runs only when the picture actually changes. When there is nothing to read — an
 aerial video, an unreadable file — every configured color is used unchanged.
 
+== Alerts
+
+A window asking for attention is recoloured: its border ring and, when it is a tab, its tab fill.
+
+`glass.alerts.on-sheet` (default true) flags a window that is *blocked on an attached dialog*. The
+documented `AXSheets` attribute comes back empty for the sheets AppKit actually puts up, and
+`AXModal` stays false on the parent window, so what is read is the window's direct children for one
+with role `AXSheet`. Only on-screen windows are checked, asynchronously, so it adds nothing to the
+layout pass.
+
+`glass.alerts.on-badge` (default false) flags every window of an app whose Dock icon carries a
+badge. The badge lives on the Dock's own accessibility tree as `AXStatusLabel`, and nothing posts a
+notification when it changes, so it is polled on `glass.alerts.badge-poll-seconds`. It is per app
+rather than per window, and an app that stays badged would glow indefinitely, which is why it is
+off by default.
+
+Both colors default to the complement of the focused border and the selected tab, so the alert
+stays distinct however the theme is tuned or sampled. `glass.alerts.border-color` and
+`glass.alerts.tab-tint` pin them.
+
+An alerting window is bordered even while `glass.borders.show-inactive` is false, since being
+noticed from a window you are not in is the entire purpose.
+
+This does not detect notification banners, and "app requests user attention" is not exposed to
+other processes by any public API, so the scope is "blocked on a dialog" and "has unreads".
+
 == The settings panel
 
 *Glass settings...* in the menu bar opens a panel covering every `glass.*` key.

@@ -135,3 +135,28 @@ final class GlassConfigWriterTest: XCTestCase {
         XCTAssertFalse(snippet.contains("active-border-color"))
     }
 }
+
+@MainActor
+final class GlassAlertColorTest: XCTestCase {
+    /// The alert color has to be obviously not the accent, whatever the accent happens to be.
+    func testComplementRotatesTheHue() {
+        let violet = GlassColor(red: 0.75, green: 0.52, blue: 0.99, alpha: 1)
+        let alert = violet.complement
+        // Opposite side of the wheel: a violet accent yields a warm one.
+        XCTAssertGreaterThan(alert.red + alert.green, violet.red + violet.green)
+        XCTAssertLessThan(alert.blue, violet.blue)
+    }
+
+    /// A greyscale theme has no hue to oppose, so the complement must not come back grey.
+    func testComplementOfGreyIsNotGrey() {
+        let grey = GlassColor(red: 0.6, green: 0.6, blue: 0.61, alpha: 1)
+        let alert = grey.complement
+        XCTAssertGreaterThan(alert.red - alert.blue, 0.3)
+    }
+
+    /// Alpha is the caller's business, not the hue rotation's.
+    func testComplementKeepsAlpha() {
+        let color = GlassColor(red: 0.2, green: 0.6, blue: 0.9, alpha: 0.55)
+        XCTAssertEqual(color.complement.alpha, 0.55, accuracy: 0.01)
+    }
+}

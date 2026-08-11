@@ -92,6 +92,17 @@ glass.theme.from-wallpaper = false
 # the tab bar strip, unselected tabs, the accent, and the unfocused window ring.
 glass.theme.palette = 'mono'
 
+# Recolour a window's ring and tab while it wants attention.
+# on-sheet: the window is blocked on an attached dialog. Precise, and about that one window.
+# on-badge: the app's Dock icon carries a badge, so every window of that app is flagged. Off by
+#           default, since a permanently badged app would otherwise glow all day.
+glass.alerts.on-sheet = true
+glass.alerts.on-badge = false
+glass.alerts.badge-poll-seconds = 3
+# Unset colors take the complement of the focused border and the selected tab.
+# glass.alerts.border-color = '#FF9E80'
+# glass.alerts.tab-tint =     '#FF9E80'
+
 # A border around each tiled window, to show which one has focus.
 # Off by default: it costs one overlay panel per visible window.
 glass.borders.enabled =        false

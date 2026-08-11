@@ -74,6 +74,7 @@ struct GlassSettingsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     themeSection
+                    alertsSection
                     tabsSection
                     bordersSection
                     dropPreviewSection
@@ -83,7 +84,7 @@ struct GlassSettingsView: View {
             Divider()
             footer
         }
-        .frame(width: 460, height: 620)
+        .frame(width: 460, height: 660)
     }
 
     // MARK: - Sections
@@ -100,6 +101,20 @@ struct GlassSettingsView: View {
             Text(model.glass.theme.fromWallpaper
                 ? "The palette owns the tints and the accent. Colors below are ignored while this is on."
                 : "Colors below are used as written.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var alertsSection: some View {
+        Section("Alerts") {
+            Toggle("Flag a window blocked on a dialog", isOn: $model.glass.alerts.onSheet)
+            Toggle("Flag windows of a badged app", isOn: $model.glass.alerts.onBadge)
+            points("Badge poll interval (s)", $model.glass.alerts.badgePollSeconds, 1 ... 30)
+                .disabled(!model.glass.alerts.onBadge)
+            optionalColor("Alert border", $model.glass.alerts.borderColor)
+            optionalColor("Alert tab", $model.glass.alerts.tabTint)
+            Text("Unset colors take the complement of the focused border and selected tab, so they stay distinct however the theme is tuned.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

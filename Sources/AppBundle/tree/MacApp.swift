@@ -284,6 +284,13 @@ final class MacApp: AbstractApp {
         } ?? [:]
     }
 
+    /// Whether the window currently has a sheet attached, i.e. it is blocked on a dialog.
+    func hasSheet(_ windowId: UInt32, _ cm: CancellationMode) async throws -> Bool? {
+        try await withWindow(windowId, cm) { window, job in
+            window.get(Ax.childrenAttr)?.contains { $0.get(Ax.roleAttr) == kAXSheetRole } ?? false
+        }
+    }
+
     func getAxTitle(_ windowId: UInt32, _ cm: CancellationMode) async throws -> String? {
         try await withWindow(windowId, cm) { window, job in
             window.get(Ax.titleAttr)

@@ -36,6 +36,31 @@ extension GlassColor {
     /// is composited over the glass, approximated here as a mid grey.
     var legibleForeground: NSColor { legibleGlassColor.toNSColor }
 
+    /// The opposite side of the colour wheel, kept at a similar brightness. An alert has to read as
+    /// "not the normal colour" at a glance, and the complement does that whatever the theme is
+    /// tuned to — including a palette sampled from a wallpaper nobody chose in advance.
+    var complement: GlassColor {
+        var hue: CGFloat = 0, saturation: CGFloat = 0, brightness: CGFloat = 0, alphaOut: CGFloat = 0
+        let ns = toNSColor.usingColorSpace(.sRGB) ?? .red
+        ns.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alphaOut)
+        // A grey has no hue to oppose, so it becomes a warm amber instead of staying grey.
+        let rotated = saturation < 0.15
+            ? NSColor(hue: 0.08, saturation: 0.85, brightness: max(brightness, 0.75), alpha: alphaOut)
+            : NSColor(
+                hue: (hue + 0.5).truncatingRemainder(dividingBy: 1),
+                saturation: min(max(saturation, 0.6), 1),
+                brightness: min(max(brightness, 0.7), 1),
+                alpha: alphaOut,
+            )
+        let srgb = rotated.usingColorSpace(.sRGB) ?? rotated
+        return GlassColor(
+            red: Double(srgb.redComponent),
+            green: Double(srgb.greenComponent),
+            blue: Double(srgb.blueComponent),
+            alpha: Double(srgb.alphaComponent),
+        )
+    }
+
     /// As ``legibleForeground``, in the config's own color type so a configured override can
     /// substitute for it without either side knowing which it got.
     var legibleGlassColor: GlassColor {

@@ -76,6 +76,7 @@ struct FocusFollowsMouse: ConvenienceMutable {
 /// Appearance of the native macOS glass decorations that this fork draws on top of managed windows.
 struct GlassConfig: ConvenienceMutable {
     var theme: GlassThemeConfig = GlassThemeConfig()
+    var alerts: GlassAlertsConfig = GlassAlertsConfig()
     var borders: GlassBordersConfig = GlassBordersConfig()
     var tabs: GlassTabsConfig = GlassTabsConfig()
     var dropPreview: GlassDropPreviewConfig = GlassDropPreviewConfig()
@@ -109,6 +110,22 @@ struct GlassThemeConfig: ConvenienceMutable {
     /// `mono` derives the surfaces from one sampled tone; `multi` samples a distinct tone per role
     /// — the tab bar strip, unselected tabs, the accent, and the unfocused window ring.
     var palette: GlassThemePalette = .mono
+}
+
+/// Recolouring a window's decorations while it wants attention.
+struct GlassAlertsConfig: ConvenienceMutable {
+    /// Flag a window that is blocked on an attached dialog. Precise, and about that one window.
+    var onSheet: Bool = true
+    /// Flag every window of an app whose Dock icon carries a badge. Off by default: an app that
+    /// sits permanently badged would otherwise glow all day, which trains you to ignore it.
+    var onBadge: Bool = false
+    /// How often the Dock's badges are re-read, in seconds. Only runs while ``onBadge`` is on.
+    var badgePollSeconds: Double = 3
+    /// The ring around an alerting window. Unset takes the complement of the focused border color,
+    /// which stays distinct from it however the rest of the theme is tuned or sampled.
+    var borderColor: GlassColor? = nil
+    /// The tab fill for an alerting window. Unset takes the complement of the selected tab's tint.
+    var tabTint: GlassColor? = nil
 }
 
 struct GlassBordersConfig: ConvenienceMutable {

@@ -6,6 +6,8 @@ struct GlassTabItem: Identifiable {
     let title: String
     let icon: NSImage?
     let isActive: Bool
+    /// The window wants attention: blocked on a dialog, or its app is badged.
+    let isAlerting: Bool
 }
 
 /// The tab bar drawn above a `tabbed` container: one blurred strip spanning the container, with the
@@ -27,6 +29,8 @@ struct GlassTabBarView: View {
     var barTint: Color
     var inactiveTint: Color
     var activeTint: Color
+    /// Fill for a tab whose window is asking for attention.
+    var alertTint: Color
     var activeForeground: Color
     var inactiveForeground: Color
     /// Hairline around the selected tab. nil keeps the default white hairline.
@@ -49,8 +53,12 @@ struct GlassTabBarView: View {
                     fontSize: fontSize,
                     showIcons: showIcons,
                     fixedWidth: fixedWidth,
-                    fill: item.isActive ? activeTint : inactiveTint,
-                    foreground: item.isActive ? activeForeground : inactiveForeground,
+                    // An alerting tab is the reason to look at the bar at all, so it outranks the
+                    // selected/unselected ramp rather than blending into it.
+                    fill: item.isAlerting ? alertTint : (item.isActive ? activeTint : inactiveTint),
+                    foreground: item.isAlerting
+                        ? Color(alertTint.toGlassColor.legibleForeground)
+                        : (item.isActive ? activeForeground : inactiveForeground),
                     activeBorder: activeBorder,
                     onSelect: { onSelect(item.id) },
                     onClose: { onClose(item.id) },

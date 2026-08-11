@@ -18,6 +18,7 @@ final class GlassOverlayManager {
     private var tabPanels: [ObjectIdentifier: GlassPanel<GlassTabBarView>] = [:]
     private let titles = WindowTitleCache()
     private let frames = WindowFrameCache()
+    private let alerts = WindowAlertCache()
 
     private init() {}
 
@@ -40,6 +41,12 @@ final class GlassOverlayManager {
 
         syncBorders(borders)
         syncTabBars(tabBars)
+        // Sheet state is read for the windows on screen only, and badge polling runs on its own
+        // timer, so neither adds an AX round trip to the layout pass.
+        alerts.prefetch(borders.map(\.windowId) + tabBars.flatMap { $0.windowIds }) { [weak self] in
+            self?.refresh()
+        }
+        alerts.syncBadgePolling { [weak self] in self?.refresh() }
         titles.prefetch(tabBars.flatMap { $0.windowIds }) { [weak self] in
             // Titles arrive asynchronously from the AX API. Re-render the bars in place rather than
             // triggering another refresh session, which would loop.
@@ -73,12 +80,16 @@ final class GlassOverlayManager {
                       let rect = window.lastAppliedLayoutPhysicalRect,
                       !window.isHiddenInCorner else { return }
                 let isFocused = window.windowId == focusedWindowId
-                if isFocused || config.glass.borders.showInactive {
+                let isAlerting = alerts.alert(for: window.windowId, appName: window.app.name) != nil
+                // An alerting window is bordered even when unfocused borders are off. Being seen
+                // from a window you aren't in is the entire point of the alert color.
+                if isFocused || isAlerting || config.glass.borders.showInactive {
                     borders.append(BorderSpec(
                         windowId: window.windowId,
                         rect: rect,
                         isFocused: isFocused,
                         appBundleId: window.app.rawAppBundleId,
+                        isAlerting: isAlerting,
                     ))
                 }
             case .tilingContainer(let container):
@@ -129,11 +140,17 @@ final class GlassOverlayManager {
             let radius = spec.appBundleId.flatMap { cfg.appCornerRadius[$0] }
                 ?? detected.map(Double.init)
                 ?? cfg.cornerRadius
+            // An alerting window takes the alert color whether or not it has focus: the whole
+            // point is to be seen from a window you aren't in.
+            let base = spec.isFocused ? cfg.activeColor : cfg.inactiveColor
+            let ring = spec.isAlerting
+                ? (config.glass.alerts.borderColor ?? cfg.activeColor.complement)
+                : base
             let view = GlassBorderView(
                 cornerRadius: CGFloat(radius) + outset,
                 lineWidth: CGFloat(cfg.width),
                 strokeWidth: CGFloat(cfg.strokeWidth),
-                color: Color((spec.isFocused ? cfg.activeColor : cfg.inactiveColor).toNSColor),
+                color: Color(ring.toNSColor),
             )
             let panel = borderPanels.getOrPut(spec.windowId) {
                 GlassPanel(content: view, clickThrough: true)
@@ -207,6 +224,7 @@ final class GlassOverlayManager {
                 title: titles.title(of: windowId) ?? window?.app.name ?? "Window \(windowId)",
                 icon: (window as? MacWindow)?.macApp.nsApp.icon,
                 isActive: windowId == spec.activeWindowId,
+                isAlerting: alerts.alert(for: windowId, appName: window?.app.name) != nil,
             )
         }
         return GlassTabBarView(
@@ -219,6 +237,7 @@ final class GlassOverlayManager {
             barTint: Color(cfg.barTint.toNSColor),
             inactiveTint: Color(cfg.inactiveTint.toNSColor),
             activeTint: Color(cfg.activeTint.toNSColor),
+            alertTint: Color((config.glass.alerts.tabTint ?? cfg.activeTint.complement).toNSColor),
             // A configured label color wins; otherwise it is derived from the fill it sits on.
             activeForeground: Color((cfg.activeTextColor ?? cfg.activeTint.legibleGlassColor).toNSColor),
             inactiveForeground: Color((cfg.textColor ?? cfg.inactiveTint.legibleGlassColor).toNSColor),
@@ -375,6 +394,7 @@ private struct BorderSpec {
     let rect: Rect
     let isFocused: Bool
     let appBundleId: String?
+    let isAlerting: Bool
 }
 
 private struct TabBarSpec {

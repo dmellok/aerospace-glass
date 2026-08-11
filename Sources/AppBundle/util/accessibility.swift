@@ -200,6 +200,14 @@ enum Ax {
         getter: { $0 as? String },
         setter: { $0 as CFTypeRef },
     )
+    /// A window's direct children. Used to spot an attached sheet: the documented `AXSheets`
+    /// attribute comes back empty for the sheets AppKit actually puts up, and `AXModal` stays
+    /// false on the parent, so the child with role `AXSheet` is the signal that works.
+    static let childrenAttr = WritableAttrImpl<[AXUIElement]>(
+        key: kAXChildrenAttribute,
+        getter: { $0 as? [AXUIElement] },
+        setter: { $0 as CFTypeRef },
+    )
     static let subroleAttr = WritableAttrImpl<String>(
         key: kAXSubroleAttribute,
         getter: { $0 as? String },
