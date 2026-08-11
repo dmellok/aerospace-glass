@@ -99,7 +99,8 @@ glass.theme.palette = 'mono'
 glass.alerts.on-sheet = true
 glass.alerts.on-badge = false
 glass.alerts.badge-poll-seconds = 3
-# Unset colors take the complement of the focused border and the selected tab.
+# Unset colors are derived as coral: the focused border and selected tab rotated across the
+# wheel, then pulled toward coral so the alert reads as a warning rather than another theme color.
 # glass.alerts.border-color = '#FF9E80'
 # glass.alerts.tab-tint =     '#FF9E80'
 

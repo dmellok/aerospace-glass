@@ -183,9 +183,15 @@ notification when it changes, so it is polled on `glass.alerts.badge-poll-second
 rather than per window, and an app that stays badged would glow indefinitely, which is why it is
 off by default.
 
-Both colors default to the complement of the focused border and the selected tab, so the alert
-stays distinct however the theme is tuned or sampled. `glass.alerts.border-color` and
-`glass.alerts.tab-tint` pin them.
+Both colors default to coral. The focused border and the selected tab are rotated to the opposite
+side of the color wheel and then pulled most of the way toward coral: a straight complement is
+reliably different from the accent but not reliably alarming, since a violet accent opposes into a
+yellow-green that reads as just another theme color. The pull is skipped when the accent is already
+coral, where it would produce two near-identical colors, and a greyscale theme goes straight to
+coral because it has no hue to oppose.
+
+`glass.alerts.border-color` and `glass.alerts.tab-tint` pin them explicitly, from the config or from
+the settings panel.
 
 An alerting window is bordered even while `glass.borders.show-inactive` is false, since being
 noticed from a window you are not in is the entire purpose.

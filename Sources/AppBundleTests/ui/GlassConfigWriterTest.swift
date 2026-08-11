@@ -138,20 +138,33 @@ final class GlassConfigWriterTest: XCTestCase {
 
 @MainActor
 final class GlassAlertColorTest: XCTestCase {
-    /// The alert color has to be obviously not the accent, whatever the accent happens to be.
-    func testComplementRotatesTheHue() {
-        let violet = GlassColor(red: 0.75, green: 0.52, blue: 0.99, alpha: 1)
-        let alert = violet.complement
-        // Opposite side of the wheel: a violet accent yields a warm one.
-        XCTAssertGreaterThan(alert.red + alert.green, violet.red + violet.green)
-        XCTAssertLessThan(alert.blue, violet.blue)
+    /// Whatever the accent is, the alert should land in coral territory: red dominant, green in
+    /// the middle, blue lowest.
+    private func assertReadsAsCoral(_ c: GlassColor, _ label: String, file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertGreaterThan(c.red, c.green, "\(label): red should lead", file: file, line: line)
+        XCTAssertGreaterThan(c.green, c.blue, "\(label): blue should trail", file: file, line: line)
+        XCTAssertGreaterThan(c.red, 0.6, "\(label): should be warm and bright", file: file, line: line)
     }
 
-    /// A greyscale theme has no hue to oppose, so the complement must not come back grey.
-    func testComplementOfGreyIsNotGrey() {
-        let grey = GlassColor(red: 0.6, green: 0.6, blue: 0.61, alpha: 1)
-        let alert = grey.complement
-        XCTAssertGreaterThan(alert.red - alert.blue, 0.3)
+    func testComplementOfVioletIsCoral() {
+        assertReadsAsCoral(GlassColor(red: 0.75, green: 0.52, blue: 0.99, alpha: 1).complement, "violet")
+    }
+
+    func testComplementOfTealIsCoral() {
+        assertReadsAsCoral(GlassColor(red: 0.18, green: 0.83, blue: 0.75, alpha: 1).complement, "teal")
+    }
+
+    /// A greyscale theme has no hue to oppose, so it goes straight to coral rather than staying grey.
+    func testComplementOfGreyIsCoral() {
+        assertReadsAsCoral(GlassColor(red: 0.6, green: 0.6, blue: 0.61, alpha: 1).complement, "grey")
+    }
+
+    /// A coral accent is the one case where pulling toward coral would give two of the same colour,
+    /// so the plain complement is used and comes back cool.
+    func testComplementOfCoralStaysDistinct() {
+        let coral = GlassColor(red: 1, green: 0.5, blue: 0.31, alpha: 1)
+        let alert = coral.complement
+        XCTAssertLessThan(alert.red, alert.blue, "a coral accent must not alert in coral")
     }
 
     /// Alpha is the caller's business, not the hue rotation's.

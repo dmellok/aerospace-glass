@@ -24,7 +24,30 @@ extension Rect {
     }
 }
 
+/// Shortest distance between two hues on the wheel, where 0 and 1 are the same place.
+private func circularDistance(_ a: Double, _ b: Double) -> Double {
+    let raw = abs(a - b).truncatingRemainder(dividingBy: 1)
+    return min(raw, 1 - raw)
+}
+
+/// Move `hue` toward `target` the short way around the wheel.
+private func blendHue(_ hue: Double, toward target: Double, by amount: Double) -> Double {
+    var delta = (target - hue).truncatingRemainder(dividingBy: 1)
+    if delta > 0.5 { delta -= 1 } else if delta < -0.5 { delta += 1 }
+    return (hue + delta * amount + 1).truncatingRemainder(dividingBy: 1)
+}
+
 extension GlassColor {
+    init(nsColor: NSColor) {
+        let srgb = nsColor.usingColorSpace(.sRGB) ?? nsColor
+        self.init(
+            red: Double(srgb.redComponent),
+            green: Double(srgb.greenComponent),
+            blue: Double(srgb.blueComponent),
+            alpha: Double(srgb.alphaComponent),
+        )
+    }
+
     var toNSColor: NSColor {
         NSColor(srgbRed: red, green: green, blue: blue, alpha: alpha)
     }
@@ -36,29 +59,38 @@ extension GlassColor {
     /// is composited over the glass, approximated here as a mid grey.
     var legibleForeground: NSColor { legibleGlassColor.toNSColor }
 
-    /// The opposite side of the colour wheel, kept at a similar brightness. An alert has to read as
-    /// "not the normal colour" at a glance, and the complement does that whatever the theme is
-    /// tuned to — including a palette sampled from a wallpaper nobody chose in advance.
+    /// A colour that reads as an alert: warm coral, pulled off the opposite side of the wheel from
+    /// whatever the theme's accent happens to be.
+    ///
+    /// A straight 180° rotation is reliably *different* but not reliably *alarming* — a violet
+    /// accent opposes into yellow-green, which reads as another theme colour rather than as a
+    /// warning. Rotating and then pulling most of the way toward coral keeps the contrast while
+    /// landing somewhere the eye reads as "attention".
+    ///
+    /// The pull is skipped when the accent is itself coral, where it would produce two nearly
+    /// identical colours; there the plain complement is the honest answer.
     var complement: GlassColor {
+        /// Coral, the colour alerts are aiming for.
+        let coralHue = 0.044
         var hue: CGFloat = 0, saturation: CGFloat = 0, brightness: CGFloat = 0, alphaOut: CGFloat = 0
         let ns = toNSColor.usingColorSpace(.sRGB) ?? .red
         ns.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alphaOut)
-        // A grey has no hue to oppose, so it becomes a warm amber instead of staying grey.
-        let rotated = saturation < 0.15
-            ? NSColor(hue: 0.08, saturation: 0.85, brightness: max(brightness, 0.75), alpha: alphaOut)
-            : NSColor(
-                hue: (hue + 0.5).truncatingRemainder(dividingBy: 1),
-                saturation: min(max(saturation, 0.6), 1),
-                brightness: min(max(brightness, 0.7), 1),
-                alpha: alphaOut,
-            )
-        let srgb = rotated.usingColorSpace(.sRGB) ?? rotated
-        return GlassColor(
-            red: Double(srgb.redComponent),
-            green: Double(srgb.greenComponent),
-            blue: Double(srgb.blueComponent),
-            alpha: Double(srgb.alphaComponent),
-        )
+
+        // A grey has no hue to oppose, so it goes straight to coral.
+        guard saturation >= 0.15 else {
+            return GlassColor(nsColor: NSColor(
+                hue: coralHue, saturation: 0.7, brightness: max(brightness, 0.85), alpha: alphaOut,
+            ))
+        }
+
+        let opposite = (Double(hue) + 0.5).truncatingRemainder(dividingBy: 1)
+        let pull = circularDistance(Double(hue), coralHue) > 0.12 ? 0.7 : 0
+        return GlassColor(nsColor: NSColor(
+            hue: CGFloat(blendHue(opposite, toward: coralHue, by: pull)),
+            saturation: min(max(saturation, 0.62), 0.85),
+            brightness: min(max(brightness, 0.8), 1),
+            alpha: alphaOut,
+        ))
     }
 
     /// As ``legibleForeground``, in the config's own color type so a configured override can

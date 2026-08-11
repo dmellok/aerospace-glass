@@ -217,9 +217,12 @@ kept separate because they mean different things:
   *app*, so every window of a badged app is flagged, and a permanently badged app would glow all
   day, which is why it's off.
 
-The colours default to the complement of the focused border and the selected tab, so an alert stays
-obviously distinct however the theme is tuned — including a palette sampled from a wallpaper. Set
-`glass.alerts.border-color` and `glass.alerts.tab-tint` to pin them. An alerting window is ringed
+The colours default to **coral**, derived by rotating the focused border and selected tab to the
+opposite side of the wheel and then pulling most of the way toward coral. A straight complement is
+reliably *different* but not reliably *alarming* — a violet accent opposes into yellow-green, which
+reads as another theme colour. The pull is skipped when the accent is itself coral, where it would
+give two of the same colour. Set `glass.alerts.border-color` and `glass.alerts.tab-tint` to pin them
+instead, in the config or in the settings panel's Alerts section. An alerting window is ringed
 even when `show-inactive` is off: being seen from a window you aren't in is the whole point.
 
 Neither signal catches a notification banner, and "app requests attention" isn't exposed to other
