@@ -104,6 +104,12 @@ glass.alerts.badge-poll-seconds = 3
 # glass.alerts.border-color = '#FF9E80'
 # glass.alerts.tab-tint =     '#FF9E80'
 
+# What to do with an accordion container. 'keep' leaves it alone, 'tiles' turns it into a plain
+# split, and 'spiral' rearranges it as a Fibonacci spiral: each window takes the golden section of
+# what is left and the rest is split the other way, winding inward. Effectively a switch for
+# turning accordion off, since it converts one the moment it appears.
+glass.layout.accordion = 'keep'
+
 # Grab strips in the gaps between tiles, so a resize doesn't need you to hit a window's own edge.
 # Invisible until pointed at; the hit area is wider than the bar you see, since a gap is a small
 # target. Unset color follows the focused border.

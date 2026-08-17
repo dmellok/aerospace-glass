@@ -206,6 +206,25 @@ noticed from a window you are not in is the entire purpose.
 This does not detect notification banners, and "app requests user attention" is not exposed to
 other processes by any public API, so the scope is "blocked on a dialog" and "has unreads".
 
+== Turning accordion off, and the spiral
+
+`glass.layout.accordion` says what an accordion container should become: `keep` (the default)
+leaves it alone, `tiles` makes it a plain split, and `spiral` rearranges it as a Fibonacci spiral.
+The conversion runs on every refresh, so either non-`keep` value amounts to turning accordion off:
+a container can't stay in that layout long enough to be seen.
+
+A spiral gives each window the golden section of what is left and splits the rest the other way, so
+it winds inward: 62% of the width, then 62% of the remaining height, and so on. The final two
+windows share their container rather than nesting one more level for a single window, which
+normalization would dissolve anyway. Window order is preserved, so the rearrangement never makes
+you hunt for a window.
+
+Weights are computed from the container's real size rather than as bare ratios. The layout pass
+distributes the difference between a container's weights and its actual extent equally among the
+children, so ratios summing to less than the real width are pulled toward equal halves: a golden
+section written as 618/382 renders as roughly 54/46. Starting from the measured size keeps that
+difference at zero and the section exact.
+
 == Resize handles
 
 `glass.handles.enabled` puts a grab strip in each gap between adjacent tiles. Dragging one trades

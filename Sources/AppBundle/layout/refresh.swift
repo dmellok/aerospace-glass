@@ -45,6 +45,9 @@ func runHeavyCompleteRefreshSession(
             updateTrayText()
             SecureInputPanel.shared.refresh()
             try await normalizeLayoutReason()
+            // Convert accordion containers before the layout pass, so a workspace never renders in
+            // a layout the config has asked to be rid of.
+            for workspace in Workspace.all { workspace.applyGlassAccordionPolicy() }
             if shouldLayoutWorkspaces { try await layoutWorkspaces() }
             // Must run after layoutWorkspaces: it renders the geometry that pass caches on the tree
             GlassOverlayManager.shared.refresh()

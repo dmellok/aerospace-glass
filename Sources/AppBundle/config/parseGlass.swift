@@ -3,6 +3,7 @@ import Common
 private let glassParser: [String: any ParserProtocol<GlassConfig>] = [
     "theme": Parser(\.theme, parseGlassTheme),
     "alerts": Parser(\.alerts, parseGlassAlerts),
+    "layout": Parser(\.layout, parseGlassLayout),
     "handles": Parser(\.handles, parseGlassHandles),
     "borders": Parser(\.borders, parseGlassBorders),
     "tabs": Parser(\.tabs, parseGlassTabs),
@@ -20,6 +21,10 @@ private let glassAlertsParser: [String: any ParserProtocol<GlassAlertsConfig>] =
     "badge-poll-seconds": Parser(\.badgePollSeconds, parsePoints),
     "border-color": Parser(\.borderColor, parseOptionalGlassColor),
     "tab-tint": Parser(\.tabTint, parseOptionalGlassColor),
+]
+
+private let glassLayoutParser: [String: any ParserProtocol<GlassLayoutConfig>] = [
+    "accordion": Parser(\.accordion, parseGlassAccordionMode),
 ]
 
 private let glassHandlesParser: [String: any ParserProtocol<GlassHandlesConfig>] = [
@@ -79,6 +84,20 @@ private func parseGlassTheme(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _
 
 private func parseGlassAlerts(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext) -> GlassAlertsConfig {
     parseTable(raw, GlassAlertsConfig(), glassAlertsParser, backtrace, &c)
+}
+
+private func parseGlassLayout(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext) -> GlassLayoutConfig {
+    parseTable(raw, GlassLayoutConfig(), glassLayoutParser, backtrace, &c)
+}
+
+private func parseGlassAccordionMode(
+    _ raw: OrderedJson,
+    _ backtrace: ConfigBacktrace,
+) -> ResOrConfigParseDiagnostic<GlassAccordionMode> {
+    parseString(raw, backtrace).flatMap {
+        GlassAccordionMode(rawValue: $0)
+            .toResult(.init(backtrace, "Can't parse accordion mode '\($0)'. Expected 'keep', 'tiles' or 'spiral'"))
+    }
 }
 
 private func parseGlassHandles(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext) -> GlassHandlesConfig {

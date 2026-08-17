@@ -76,6 +76,7 @@ struct GlassSettingsView: View {
                     themeSection
                     alertsSection
                     tabsSection
+                    layoutSection
                     handlesSection
                     bordersSection
                     dropPreviewSection
@@ -144,6 +145,20 @@ struct GlassSettingsView: View {
             optionalColor("Label", $model.glass.tabs.textColor)
             optionalColor("Selected label", $model.glass.tabs.activeTextColor)
             optionalColor("Selected outline", $model.glass.tabs.activeBorderColor)
+        }
+    }
+
+    private var layoutSection: some View {
+        Section("Layout") {
+            Picker("Accordion", selection: $model.glass.layout.accordion) {
+                Text("Keep").tag(GlassAccordionMode.keep)
+                Text("Tiles").tag(GlassAccordionMode.tiles)
+                Text("Spiral").tag(GlassAccordionMode.spiral)
+            }
+            .pickerStyle(.segmented)
+            Text("Turns an accordion container into tiles, or into a Fibonacci spiral where each window takes the golden section of what is left.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 

@@ -232,6 +232,23 @@ Neither signal catches a notification banner, and "app requests attention" isn't
 processes at all, so this is "that window is blocked" and "that app has unreads", not every kind of
 notification.
 
+### Turning accordion off, and the spiral
+
+`glass.layout.accordion` decides what happens to an accordion container: `keep` leaves it alone,
+`tiles` turns it into a plain split, and `spiral` rearranges it as a **Fibonacci spiral**. Since the
+conversion runs on every refresh, setting either non-`keep` value is effectively a switch for
+turning accordion off — it can't survive long enough to see.
+
+In a spiral each window takes the golden section of what remains and the rest is split the other
+way, so the layout winds inward: 62% of the width, then 62% of the remaining height, and so on. The
+last two windows share their space, since there's nothing left to spiral into. Windows keep their
+order, so rearranging never makes you hunt for them.
+
+The weights are set from the container's real size rather than as bare ratios. AeroSpace hands any
+difference between a container's weights and its actual extent out equally among the children, so
+ratios that don't sum to the real width drift toward equal halves — which turns a 62/38 split into
+54/46.
+
 ### Resize handles
 
 `glass.handles.enabled` puts a grab strip in the gap between adjacent tiles, so resizing doesn't

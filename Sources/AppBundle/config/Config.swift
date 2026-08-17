@@ -77,6 +77,7 @@ struct FocusFollowsMouse: ConvenienceMutable {
 struct GlassConfig: ConvenienceMutable {
     var theme: GlassThemeConfig = GlassThemeConfig()
     var alerts: GlassAlertsConfig = GlassAlertsConfig()
+    var layout: GlassLayoutConfig = GlassLayoutConfig()
     var handles: GlassHandlesConfig = GlassHandlesConfig()
     var borders: GlassBordersConfig = GlassBordersConfig()
     var tabs: GlassTabsConfig = GlassTabsConfig()
@@ -127,6 +128,24 @@ struct GlassAlertsConfig: ConvenienceMutable {
     var borderColor: GlassColor? = nil
     /// The tab fill for an alerting window. Unset takes the complement of the selected tab's tint.
     var tabTint: GlassColor? = nil
+}
+
+/// What to do with an accordion container.
+enum GlassAccordionMode: String {
+    /// Leave it alone, as upstream does.
+    case keep
+    /// Turn it into a plain `tiles` container.
+    case tiles
+    /// Rearrange it as a Fibonacci spiral: each window takes the golden section of what remains
+    /// and the rest is split the other way, winding inward.
+    case spiral
+}
+
+struct GlassLayoutConfig: ConvenienceMutable {
+    /// Accordion is only reachable deliberately, but it is easy to reach by a mistyped binding and
+    /// hard to recognise once you are in it. `tiles` or `spiral` convert it away as soon as it
+    /// appears, which is effectively a switch for turning accordion off.
+    var accordion: GlassAccordionMode = .keep
 }
 
 /// Grab strips in the gaps between tiles, for resizing with the mouse without having to hit a

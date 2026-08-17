@@ -62,6 +62,14 @@ extension TilingContainer {
         }
     }
 
+    /// Set this container's own orientation, without the cascade ``changeOrientation`` applies to
+    /// ancestors when the opposite-orientation normalization is on. A spiral chooses the
+    /// orientation at every level deliberately, so it has to be able to say exactly this one.
+    @MainActor
+    func setOwnOrientation(_ orientation: Orientation) {
+        _orientation = orientation
+    }
+
     func normalizeOppositeOrientationForNestedContainers() {
         if !isUserDefinedSplit, layout != .tabbed,
            orientation == (parent as? TilingContainer)?.orientation
