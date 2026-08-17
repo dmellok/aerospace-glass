@@ -229,6 +229,18 @@ Neither signal catches a notification banner, and "app requests attention" isn't
 processes at all, so this is "that window is blocked" and "that app has unreads", not every kind of
 notification.
 
+### Resize handles
+
+`glass.handles.enabled` puts a grab strip in the gap between adjacent tiles, so resizing doesn't
+depend on hitting a window's own edge. Drag one and the two neighbours trade width (or height); the
+gap only exists in a `tiles` container, since stacked layouts share a rect.
+
+The strip is invisible until pointed at, because a visible divider on every gap turns a workspace
+into a grid of lines. Its hit area is `thickness` wide, deliberately wider than the bar that
+appears: an inner gap is often a few points, which is a hard pointer target, and widening the
+drawing to match would look heavy. Neither side can be squeezed below 80pt, so a drag can't
+collapse a window you would then have to hunt for.
+
 ### The settings panel
 
 **Glass settings…** in the menu bar opens a panel for every `glass.*` key: the wallpaper theming,

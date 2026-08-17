@@ -199,6 +199,23 @@ noticed from a window you are not in is the entire purpose.
 This does not detect notification banners, and "app requests user attention" is not exposed to
 other processes by any public API, so the scope is "blocked on a dialog" and "has unreads".
 
+== Resize handles
+
+`glass.handles.enabled` puts a grab strip in each gap between adjacent tiles. Dragging one trades
+size between the two neighbours by adjusting their weights, exactly as a `resize` command would, so
+the result survives the next layout pass like any other weight change.
+
+Handles exist only in a `tiles` container. A stacked or tabbed container's children share one rect,
+so there is no gap between them to grab.
+
+The strip is invisible until the pointer is over it: a divider drawn on every gap turns a tiled
+workspace into a grid of lines. The panel behind it is `glass.handles.thickness` wide and is
+deliberately wider than the visible bar, because an inner gap is often only a few points and that
+is a hard target to hit, while widening the drawing to match would read as heavy chrome.
+
+Each drag is measured from the weights recorded when it began rather than accumulated tick by tick,
+and neither side may fall below 80pt, so a drag cannot collapse a window out of sight.
+
 == The settings panel
 
 *Glass settings...* in the menu bar opens a panel covering every `glass.*` key.

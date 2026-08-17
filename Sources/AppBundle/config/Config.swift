@@ -77,6 +77,7 @@ struct FocusFollowsMouse: ConvenienceMutable {
 struct GlassConfig: ConvenienceMutable {
     var theme: GlassThemeConfig = GlassThemeConfig()
     var alerts: GlassAlertsConfig = GlassAlertsConfig()
+    var handles: GlassHandlesConfig = GlassHandlesConfig()
     var borders: GlassBordersConfig = GlassBordersConfig()
     var tabs: GlassTabsConfig = GlassTabsConfig()
     var dropPreview: GlassDropPreviewConfig = GlassDropPreviewConfig()
@@ -126,6 +127,17 @@ struct GlassAlertsConfig: ConvenienceMutable {
     var borderColor: GlassColor? = nil
     /// The tab fill for an alerting window. Unset takes the complement of the selected tab's tint.
     var tabTint: GlassColor? = nil
+}
+
+/// Grab strips in the gaps between tiles, for resizing with the mouse without having to hit a
+/// window's own edge.
+struct GlassHandlesConfig: ConvenienceMutable {
+    var enabled: Bool = false
+    /// Width of the hit area, which is wider than the visible bar on purpose: an inner gap is often
+    /// only a few points, and that is a hard target to hit with a pointer.
+    var thickness: Double = 12
+    /// The bar shown while the gap is pointed at. Unset uses the focused border color.
+    var color: GlassColor? = nil
 }
 
 struct GlassBordersConfig: ConvenienceMutable {

@@ -3,6 +3,7 @@ import Common
 private let glassParser: [String: any ParserProtocol<GlassConfig>] = [
     "theme": Parser(\.theme, parseGlassTheme),
     "alerts": Parser(\.alerts, parseGlassAlerts),
+    "handles": Parser(\.handles, parseGlassHandles),
     "borders": Parser(\.borders, parseGlassBorders),
     "tabs": Parser(\.tabs, parseGlassTabs),
     "drop-preview": Parser(\.dropPreview, parseGlassDropPreview),
@@ -19,6 +20,12 @@ private let glassAlertsParser: [String: any ParserProtocol<GlassAlertsConfig>] =
     "badge-poll-seconds": Parser(\.badgePollSeconds, parsePoints),
     "border-color": Parser(\.borderColor, parseOptionalGlassColor),
     "tab-tint": Parser(\.tabTint, parseOptionalGlassColor),
+]
+
+private let glassHandlesParser: [String: any ParserProtocol<GlassHandlesConfig>] = [
+    "enabled": Parser(\.enabled, parseBool),
+    "thickness": Parser(\.thickness, parsePoints),
+    "color": Parser(\.color, parseOptionalGlassColor),
 ]
 
 private let glassBordersParser: [String: any ParserProtocol<GlassBordersConfig>] = [
@@ -72,6 +79,10 @@ private func parseGlassTheme(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _
 
 private func parseGlassAlerts(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext) -> GlassAlertsConfig {
     parseTable(raw, GlassAlertsConfig(), glassAlertsParser, backtrace, &c)
+}
+
+private func parseGlassHandles(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext) -> GlassHandlesConfig {
+    parseTable(raw, GlassHandlesConfig(), glassHandlesParser, backtrace, &c)
 }
 
 private func parseGlassBorders(_ raw: OrderedJson, _ backtrace: ConfigBacktrace, _ c: inout ConfigParserContext) -> GlassBordersConfig {

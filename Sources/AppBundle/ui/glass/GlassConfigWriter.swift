@@ -44,6 +44,10 @@ enum GlassConfigWriter {
         if let c = glass.alerts.borderColor { put("glass.alerts.border-color", quoted(hex(c))) }
         if let c = glass.alerts.tabTint { put("glass.alerts.tab-tint", quoted(hex(c))) }
 
+        put("glass.handles.enabled", bool(glass.handles.enabled))
+        put("glass.handles.thickness", points(glass.handles.thickness))
+        if let c = glass.handles.color { put("glass.handles.color", quoted(hex(c))) }
+
         put("glass.borders.enabled", bool(glass.borders.enabled))
         put("glass.borders.width", points(glass.borders.width))
         put("glass.borders.stroke-width", points(glass.borders.strokeWidth))

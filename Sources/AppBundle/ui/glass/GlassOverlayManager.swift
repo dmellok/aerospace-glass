@@ -16,6 +16,10 @@ final class GlassOverlayManager {
 
     private var borderPanels: [UInt32: GlassPanel<GlassBorderView>] = [:]
     private var tabPanels: [ObjectIdentifier: GlassPanel<GlassTabBarView>] = [:]
+    private var handlePanels: [ObjectIdentifier: GlassPanel<GlassResizeHandleView>] = [:]
+    /// Weights at the moment a handle drag began, so every tick is measured from the start rather
+    /// than accumulating rounding from the previous one.
+    private var handleDragStart: [ObjectIdentifier: (before: CGFloat, after: CGFloat)] = [:]
     private let titles = WindowTitleCache()
     private let frames = WindowFrameCache()
     private let alerts = WindowAlertCache()
@@ -29,6 +33,7 @@ final class GlassOverlayManager {
         }
         var borders: [BorderSpec] = []
         var tabBars: [TabBarSpec] = []
+        var handles: [HandleSpec] = []
         let focusedWindowId = focus.windowOrNil?.windowId
 
         for monitor in monitors {
@@ -36,11 +41,12 @@ final class GlassOverlayManager {
             // An aerospace-fullscreen window covers the whole workspace (same Space, unlike macOS
             // native fullscreen), so any decoration on this monitor would float on top of it
             if workspace.rootTilingContainer.mostRecentWindowRecursive?.isFullscreen == true { continue }
-            collect(node: workspace.rootTilingContainer, focusedWindowId: focusedWindowId, &borders, &tabBars)
+            collect(node: workspace.rootTilingContainer, focusedWindowId: focusedWindowId, &borders, &tabBars, &handles)
         }
 
         syncBorders(borders)
         syncTabBars(tabBars)
+        syncHandles(handles)
         // Sheet state is read for the windows on screen only, and badge polling runs on its own
         // timer, so neither adds an AX round trip to the layout pass.
         alerts.prefetch(borders.map(\.windowId) + tabBars.flatMap { $0.windowIds }) { [weak self] in
@@ -63,6 +69,7 @@ final class GlassOverlayManager {
     func hideAll() {
         for panel in borderPanels.values { panel.orderOut(nil) }
         for panel in tabPanels.values { panel.orderOut(nil) }
+        for panel in handlePanels.values { panel.orderOut(nil) }
         GlassDropPreviewController.shared.hide()
     }
 
@@ -73,6 +80,7 @@ final class GlassOverlayManager {
         focusedWindowId: UInt32?,
         _ borders: inout [BorderSpec],
         _ tabBars: inout [TabBarSpec],
+        _ handles: inout [HandleSpec],
     ) {
         switch node.nodeCases {
             case .window(let window):
@@ -110,8 +118,23 @@ final class GlassOverlayManager {
                 let visible = container.layout == .tabbed
                     ? [container.mostRecentChild].compactMap(id)
                     : container.children
+                // A handle sits in each gap between adjacent tiles, which only exists in a `tiles`
+                // container: stacked layouts share one rect, so there is no gap to grab.
+                if config.glass.handles.enabled, container.layout == .tiles, container.children.count > 1 {
+                    for (before, after) in zip(container.children, container.children.dropFirst()) {
+                        if let gap = gapRect(between: before, and: after, container.orientation) {
+                            handles.append(HandleSpec(
+                                id: ObjectIdentifier(before),
+                                rect: gap,
+                                orientation: container.orientation,
+                                before: before,
+                                after: after,
+                            ))
+                        }
+                    }
+                }
                 for child in visible {
-                    collect(node: child, focusedWindowId: focusedWindowId, &borders, &tabBars)
+                    collect(node: child, focusedWindowId: focusedWindowId, &borders, &tabBars, &handles)
                 }
             case .workspace, .floatingWindowsContainer, .macosMinimizedWindowsContainer,
                  .macosFullscreenWindowsContainer, .macosPopupWindowsContainer,
@@ -174,6 +197,66 @@ final class GlassOverlayManager {
     }
 
     private var liveBorderSpecs: [BorderSpec] = []
+
+    // MARK: - Resize handles
+
+    /// The gap between two adjacent tiles, widened to the configured hit area and centred on the
+    /// gap itself so the strip stays where the eye expects it however wide the grab area is.
+    private func gapRect(between before: TreeNode, and after: TreeNode, _ orientation: Orientation) -> Rect? {
+        guard let a = before.lastAppliedLayoutPhysicalRect, let b = after.lastAppliedLayoutPhysicalRect else {
+            return nil
+        }
+        let thickness = CGFloat(max(config.glass.handles.thickness, 4))
+        if orientation == .h {
+            let center = (a.maxX + b.minX) / 2
+            return Rect(topLeftX: center - thickness / 2, topLeftY: a.topLeftY, width: thickness, height: a.height)
+        } else {
+            let center = (a.maxY + b.minY) / 2
+            return Rect(topLeftX: a.topLeftX, topLeftY: center - thickness / 2, width: a.width, height: thickness)
+        }
+    }
+
+    private func syncHandles(_ specs: [HandleSpec]) {
+        var stale = Set(handlePanels.keys)
+        let color = config.glass.handles.color ?? config.glass.themed().borders.activeColor
+        for spec in specs {
+            stale.remove(spec.id)
+            let view = GlassResizeHandleView(
+                orientation: spec.orientation,
+                color: Color(color.toNSColor),
+                onDragChanged: { [weak self] delta in
+                    self?.handleDragged(spec, by: delta)
+                },
+                onDragEnded: { [weak self] in
+                    self?.handleDragStart.removeValue(forKey: spec.id)
+                },
+            )
+            let panel = handlePanels.getOrPut(spec.id) { GlassPanel(content: view, clickThrough: false) }
+            panel.rootView = view
+            panel.setFrameInstantly(spec.rect.toCocoaRect)
+            panel.showIfNeeded()
+        }
+        for id in stale {
+            handlePanels.removeValue(forKey: id)?.orderOut(nil)
+            handleDragStart.removeValue(forKey: id)
+        }
+    }
+
+    private func handleDragged(_ spec: HandleSpec, by delta: CGFloat) {
+        guard spec.before.isBound, spec.after.isBound else { return }
+        let start = handleDragStart.getOrPut(spec.id) {
+            (spec.before.getWeight(spec.orientation), spec.after.getWeight(spec.orientation))
+        }
+        // Neither side may be squeezed out of existence: past the minimum the drag simply stops
+        // rather than collapsing a window you would then have to hunt for.
+        let minimum: CGFloat = 80
+        let room = min(start.before + start.after - minimum * 2, .greatestFiniteMagnitude)
+        guard room > 0 else { return }
+        let clamped = min(max(delta, minimum - start.before), start.after - minimum)
+        spec.before.setWeight(spec.orientation, start.before + clamped)
+        spec.after.setWeight(spec.orientation, start.after - clamped)
+        scheduleCancellableCompleteRefreshSession(.glassResizeHandle, optimisticallyPreLayoutWorkspaces: true)
+    }
 
     // MARK: - Tab bars
 
@@ -395,6 +478,14 @@ private struct BorderSpec {
     let isFocused: Bool
     let appBundleId: String?
     let isAlerting: Bool
+}
+
+private struct HandleSpec {
+    let id: ObjectIdentifier
+    let rect: Rect
+    let orientation: Orientation
+    let before: TreeNode
+    let after: TreeNode
 }
 
 private struct TabBarSpec {

@@ -104,6 +104,13 @@ glass.alerts.badge-poll-seconds = 3
 # glass.alerts.border-color = '#FF9E80'
 # glass.alerts.tab-tint =     '#FF9E80'
 
+# Grab strips in the gaps between tiles, so a resize doesn't need you to hit a window's own edge.
+# Invisible until pointed at; the hit area is wider than the bar you see, since a gap is a small
+# target. Unset color follows the focused border.
+glass.handles.enabled =   false
+glass.handles.thickness = 12
+# glass.handles.color =   '#8CC7FF'
+
 # A border around each tiled window, to show which one has focus.
 # Off by default: it costs one overlay panel per visible window.
 glass.borders.enabled =        false

@@ -99,6 +99,7 @@ public enum RefreshSessionEvent: Sendable, CustomStringConvertible {
     case glassTabBarClose
     case glassTabBarDrop
     case glassSettingsChanged
+    case glassResizeHandle
 
     public var isStartup: Bool {
         if case .startup = self { return true } else { return false }
@@ -124,6 +125,7 @@ public enum RefreshSessionEvent: Sendable, CustomStringConvertible {
             case .glassTabBarClose: "glassTabBarClose"
             case .glassTabBarDrop: "glassTabBarDrop"
             case .glassSettingsChanged: "glassSettingsChanged"
+            case .glassResizeHandle: "glassResizeHandle"
         }
     }
 }

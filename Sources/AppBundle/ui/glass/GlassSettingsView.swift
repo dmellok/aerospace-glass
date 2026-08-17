@@ -76,6 +76,7 @@ struct GlassSettingsView: View {
                     themeSection
                     alertsSection
                     tabsSection
+                    handlesSection
                     bordersSection
                     dropPreviewSection
                 }
@@ -143,6 +144,18 @@ struct GlassSettingsView: View {
             optionalColor("Label", $model.glass.tabs.textColor)
             optionalColor("Selected label", $model.glass.tabs.activeTextColor)
             optionalColor("Selected outline", $model.glass.tabs.activeBorderColor)
+        }
+    }
+
+    private var handlesSection: some View {
+        Section("Resize handles") {
+            Toggle("Grab strips between tiles", isOn: $model.glass.handles.enabled)
+            points("Grab width", $model.glass.handles.thickness, 4 ... 40)
+                .disabled(!model.glass.handles.enabled)
+            optionalColor("Handle", $model.glass.handles.color)
+            Text("Invisible until pointed at. The hit area is wider than the bar you see, since an inner gap is a small target.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 
