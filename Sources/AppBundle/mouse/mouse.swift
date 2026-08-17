@@ -19,6 +19,14 @@ enum MouseDragKind {
 @MainActor var mouseDragInitial: (windowId: UInt32, width: CGFloat, height: CGFloat, mouse: CGPoint)? = nil
 var isLeftMouseButtonDown: Bool { NSEvent.pressedMouseButtons == 1 }
 
+/// True while a glass resize handle is being dragged.
+///
+/// The handle moves windows with the left button held down, which is exactly the shape of a user
+/// dragging a window's own edge. Without this, AeroSpace's mouse-manipulation path wakes on the
+/// resulting AX notifications and starts recomputing the same weights the handle is setting, and
+/// the two fight: the drag oscillates instead of tracking the pointer.
+@MainActor var isDraggingGlassHandle = false
+
 @MainActor
 func isManipulatedWithMouse(_ window: Window) async throws -> Bool {
     try await (!window.isHiddenInCorner && // Don't allow to resize/move windows of hidden workspaces

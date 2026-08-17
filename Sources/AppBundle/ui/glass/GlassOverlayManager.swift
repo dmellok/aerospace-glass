@@ -17,9 +17,14 @@ final class GlassOverlayManager {
     private var borderPanels: [UInt32: GlassPanel<GlassBorderView>] = [:]
     private var tabPanels: [ObjectIdentifier: GlassPanel<GlassTabBarView>] = [:]
     private var handlePanels: [ObjectIdentifier: GlassPanel<GlassResizeHandleView>] = [:]
-    /// Weights at the moment a handle drag began, so every tick is measured from the start rather
-    /// than accumulating rounding from the previous one.
-    private var handleDragStart: [ObjectIdentifier: (before: CGFloat, after: CGFloat)] = [:]
+    /// Weights and pointer position at the moment a handle drag began, so every tick is measured
+    /// from the start rather than accumulating rounding from the previous one.
+    private var handleDragStart: [ObjectIdentifier: (before: CGFloat, after: CGFloat, mouse: CGPoint)] = [:]
+    /// The handle currently being dragged. Its panel is left where it is for the duration: moving
+    /// it out from under the pointer mid-drag is how a resize turns into a fight.
+    private var draggingHandle: ObjectIdentifier? = nil
+    private var handleLayoutTask: Task<Void, Never>? = nil
+    private var pendingHandleDrag: HandleSpec? = nil
     private let titles = WindowTitleCache()
     private let frames = WindowFrameCache()
     private let alerts = WindowAlertCache()
@@ -224,16 +229,32 @@ final class GlassOverlayManager {
             let view = GlassResizeHandleView(
                 orientation: spec.orientation,
                 color: Color(color.toNSColor),
-                onDragChanged: { [weak self] delta in
-                    self?.handleDragged(spec, by: delta)
+                onDragChanged: { [weak self] in
+                    self?.handleDragged(spec)
+                },
+                onDragStarted: { [weak self] in
+                    self?.draggingHandle = spec.id
+                    isDraggingGlassHandle = true
                 },
                 onDragEnded: { [weak self] in
-                    self?.handleDragStart.removeValue(forKey: spec.id)
+                    guard let self else { return }
+                    self.handleDragStart.removeValue(forKey: spec.id)
+                    self.draggingHandle = nil
+                    self.pendingHandleDrag = nil
+                    isDraggingGlassHandle = false
+                    // One full session at the end puts the tree back through normalization, which
+                    // the per-tick layout deliberately skips.
+                    scheduleCancellableCompleteRefreshSession(.glassResizeHandle)
                 },
             )
             let panel = handlePanels.getOrPut(spec.id) { GlassPanel(content: view, clickThrough: false) }
-            panel.rootView = view
-            panel.setFrameInstantly(spec.rect.toCocoaRect)
+            // The handle being dragged keeps both its view and its frame: replacing the view
+            // restarts the gesture, and moving the frame moves the target out from under the
+            // pointer. It is repositioned once the drag ends.
+            if spec.id != draggingHandle {
+                panel.rootView = view
+                panel.setFrameInstantly(spec.rect.toCocoaRect)
+            }
             panel.showIfNeeded()
         }
         for id in stale {
@@ -242,20 +263,49 @@ final class GlassOverlayManager {
         }
     }
 
-    private func handleDragged(_ spec: HandleSpec, by delta: CGFloat) {
-        guard spec.before.isBound, spec.after.isBound else { return }
-        let start = handleDragStart.getOrPut(spec.id) {
-            (spec.before.getWeight(spec.orientation), spec.after.getWeight(spec.orientation))
+    /// A drag tick. Ticks arrive far faster than windows can actually be moved, so the newest one
+    /// is remembered and applied as soon as the previous layout pass finishes. Running a complete
+    /// refresh session per tick — window detection, focus round trips, normalization, two layout
+    /// passes — is what made this crawl, and cancelling the previous session on every tick meant
+    /// hardly any of them ever finished.
+    private func handleDragged(_ spec: HandleSpec) {
+        pendingHandleDrag = spec
+        guard handleLayoutTask == nil else { return }
+        pumpHandleDrag()
+    }
+
+    private func pumpHandleDrag() {
+        guard let spec = pendingHandleDrag else {
+            handleLayoutTask = nil
+            return
         }
+        pendingHandleDrag = nil
+        guard spec.before.isBound, spec.after.isBound else { return }
+
+        let start = handleDragStart.getOrPut(spec.id) {
+            (spec.before.getWeight(spec.orientation), spec.after.getWeight(spec.orientation), mouseLocation)
+        }
+        // Measured against the pointer's own position, so the handle's panel moving underneath it
+        // can't feed back into the delta.
+        let delta = spec.orientation == .h
+            ? mouseLocation.x - start.mouse.x
+            : mouseLocation.y - start.mouse.y
         // Neither side may be squeezed out of existence: past the minimum the drag simply stops
         // rather than collapsing a window you would then have to hunt for.
         let minimum: CGFloat = 80
-        let room = min(start.before + start.after - minimum * 2, .greatestFiniteMagnitude)
-        guard room > 0 else { return }
+        guard start.before + start.after > minimum * 2 else { return }
         let clamped = min(max(delta, minimum - start.before), start.after - minimum)
         spec.before.setWeight(spec.orientation, start.before + clamped)
         spec.after.setWeight(spec.orientation, start.after - clamped)
-        scheduleCancellableCompleteRefreshSession(.glassResizeHandle, optimisticallyPreLayoutWorkspaces: true)
+
+        handleLayoutTask = Task.startUnstructured { @MainActor [weak self] in
+            // Just the layout: the tree hasn't changed shape, only two weights, so none of the
+            // detection or normalization a full session does has anything to say here.
+            try? await layoutWorkspaces()
+            guard let self else { return }
+            self.handleLayoutTask = nil
+            self.pumpHandleDrag()
+        }
     }
 
     // MARK: - Tab bars

@@ -10,7 +10,11 @@ import SwiftUI
 struct GlassResizeHandleView: View {
     var orientation: Orientation
     var color: Color
-    var onDragChanged: (CGFloat) -> ()
+    /// Fires on every tick. The delta is deliberately not taken from the gesture: the handle's
+    /// panel moves as the gap it sits in moves, so a translation measured in the view's own
+    /// coordinates feeds back on itself. The manager reads the pointer instead.
+    var onDragChanged: () -> ()
+    var onDragStarted: () -> ()
     var onDragEnded: () -> ()
 
     @State private var isHovered = false
@@ -49,9 +53,12 @@ struct GlassResizeHandleView: View {
         }
         .gesture(
             DragGesture(minimumDistance: 1)
-                .onChanged { value in
-                    isDragging = true
-                    onDragChanged(isVertical ? value.translation.width : value.translation.height)
+                .onChanged { _ in
+                    if !isDragging {
+                        isDragging = true
+                        onDragStarted()
+                    }
+                    onDragChanged()
                 }
                 .onEnded { _ in
                     isDragging = false

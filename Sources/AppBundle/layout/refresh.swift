@@ -158,7 +158,11 @@ enum OptimalHideCorner {
 }
 
 @MainActor
-private func layoutWorkspaces() async throws {
+/// Apply the tree's geometry to the windows.
+///
+/// Not private: a live handle drag re-lays-out on every tick and has nothing for the rest of a
+/// refresh session to do — the tree's shape is unchanged, only two weights.
+func layoutWorkspaces() async throws {
     if !TrayMenuModel.shared.isEnabled {
         for workspace in Workspace.all {
             workspace.allLeafWindowsRecursive.forEach { ($0 as! MacWindow).unhideFromCorner() } // todo as!

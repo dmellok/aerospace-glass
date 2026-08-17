@@ -9,6 +9,11 @@ func resizedObs(_: AXObserver, ax: AXUIElement, notif: CFString, _: UnsafeMutabl
     let windowId = ax.containingWindowId()
     Task.startUnstructured { @MainActor in
         guard let token: RunSessionGuard = .isServerEnabled else { return }
+        // A glass handle drag is already moving these windows deliberately; treating its output as
+        // a user dragging a window edge would have two controllers writing the same weights. The
+        // button check keeps a stale flag from disabling mouse manipulation for good: no drag can
+        // be in progress once the button is up, whatever the flag says.
+        if isDraggingGlassHandle && isLeftMouseButtonDown { return }
         guard let windowId, let window = Window.get(byId: windowId), try await isManipulatedWithMouse(window) else {
             scheduleCancellableCompleteRefreshSession(.ax(notif))
             return
