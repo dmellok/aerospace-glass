@@ -43,6 +43,13 @@ aerospace focus left     # previous tab, then out of the group
 aerospace focus right    # next tab, then out of the group
 ----
 
+Moving a window out of a tab group is a step in its own right. When the group fills the workspace
+there is no sibling to move to, so the workspace boundary was reached immediately and `move` with
+`--boundaries all-monitors-outer-frame` sent the window to the next monitor — with no way to simply
+split it out beside the group. The first press now leaves the group, placing the window as a tile
+beside it on the same monitor; crossing to another monitor is available on the following press,
+from outside the group.
+
 A tabbed container is exempt from `enable-normalization-flatten-containers`. Without that exemption
 a container holding a single tab would be flattened away the instant it was created.
 

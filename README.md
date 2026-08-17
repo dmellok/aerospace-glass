@@ -58,6 +58,9 @@ Behaviour worth knowing:
   step between them and then out of the group, while `focus up`/`down` leave directly — the same
   split i3 draws between its tabbed and stacked layouts. This is derived, not stored, so no creation
   path or normalization can get it wrong.
+- **Moving out of a group is its own step.** With the group filling the workspace, `move` used to
+  reach the workspace boundary immediately and jump to the next monitor. The first press now splits
+  the window out beside the group on the same monitor; the next press crosses monitors.
 - **It survives `enable-normalization-flatten-containers`.** Without an exemption, a container
   holding a single tab would be dissolved the instant it was created.
 - **Every tab resizes with the container**, including the hidden ones. Only resizing the visible tab

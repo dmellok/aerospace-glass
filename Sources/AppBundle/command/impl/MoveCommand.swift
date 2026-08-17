@@ -187,6 +187,18 @@ private let moveOutMacosUnconventionalWindow = "moving macOS fullscreen, minimiz
             node.bind(to: parent, adaptiveWeight: WEIGHT_AUTO, index: ownIndex + direction.insertionOffset)
             return .succ
         case .workspace(let parent):
+            // Leaving a tab group is a step in its own right. When the group is the whole
+            // workspace there is no sibling to move to, so the boundary was hit immediately and a
+            // tab moved sideways left the monitor entirely — with no way to simply split it out
+            // beside the group. Escaping the group comes first; crossing to another monitor is
+            // then available on the next press, from outside it.
+            if innerMostTilingContainer.layout == .tabbed,
+               node.parent === innerMostTilingContainer,
+               innerMostTilingContainer.children.count > 1
+            {
+                createImplicitContainerAndMoveNode(node, parent, direction)
+                return .succ
+            }
             return hitWorkspaceBoundaries(node, focusedWindow: focusedWindow, parent, io, args, direction, env)
     }
 }
