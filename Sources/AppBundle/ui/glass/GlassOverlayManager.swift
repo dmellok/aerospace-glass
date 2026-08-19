@@ -17,6 +17,10 @@ final class GlassOverlayManager {
     private var borderPanels: [UInt32: GlassPanel<GlassBorderView>] = [:]
     private var tabPanels: [ObjectIdentifier: GlassPanel<GlassTabBarView>] = [:]
     private var handlePanels: [ObjectIdentifier: GlassPanel<GlassResizeHandleView>] = [:]
+    /// What each border panel was last given. A refresh session runs on every AX notification, and
+    /// handing SwiftUI an identical view each time makes it rebuild a glass surface that hasn't
+    /// changed - which is real GPU work repeated for nothing.
+    private var renderedBorders: [UInt32: (view: GlassBorderView, frame: NSRect)] = [:]
     /// Weights and pointer position at the moment a handle drag began, so every tick is measured
     /// from the start rather than accumulating rounding from the previous one.
     private var handleDragStart: [ObjectIdentifier: (before: CGFloat, after: CGFloat, mouse: CGPoint)] = [:]
@@ -181,14 +185,22 @@ final class GlassOverlayManager {
                 color: Color(ring.toNSColor),
             )
             let panel = borderPanels.getOrPut(spec.windowId) {
-                GlassPanel(content: view, clickThrough: true)
+                renderedBorders[spec.windowId] = (view, frame)
+                return GlassPanel(content: view, clickThrough: true)
             }
-            panel.rootView = view
-            panel.setFrameInstantly(frame)
+            let previous = renderedBorders[spec.windowId]
+            if previous?.view != view {
+                panel.rootView = view
+            }
+            if previous?.frame != frame {
+                panel.setFrameInstantly(frame)
+            }
+            renderedBorders[spec.windowId] = (view, frame)
             panel.showIfNeeded()
         }
         for windowId in stale {
             borderPanels.removeValue(forKey: windowId)?.orderOut(nil)
+            renderedBorders.removeValue(forKey: windowId)
         }
         WindowCornerRadius.forgetAllExcept(specs.map(\.windowId).toSet())
         liveBorderSpecs = specs

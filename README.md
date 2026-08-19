@@ -232,6 +232,15 @@ Neither signal catches a notification banner, and "app requests attention" isn't
 processes at all, so this is "that window is blocked" and "that app has unreads", not every kind of
 notification.
 
+### Cost
+
+Each glass surface is a live backdrop blur the window server recomposites whenever anything behind
+it changes, so they aren't free. Three ways to cut it: `glass.borders.show-inactive = false` draws
+one ring instead of one per window, `glass.borders.stroke-width` equal to `width` draws a plain
+stroke and skips the blur entirely, and `glass.tabs.style = 'flat'` does the same for tab bars.
+Panels are only re-rendered when something they draw actually changed, so an idle workspace costs
+nothing beyond the blurs themselves.
+
 ### Turning accordion off, and the spiral
 
 `glass.layout.accordion` decides what happens to an accordion container: `keep` leaves it alone,

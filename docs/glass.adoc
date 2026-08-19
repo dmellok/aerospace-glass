@@ -206,6 +206,24 @@ noticed from a window you are not in is the entire purpose.
 This does not detect notification banners, and "app requests user attention" is not exposed to
 other processes by any public API, so the scope is "blocked on a dialog" and "has unreads".
 
+== Cost
+
+Every glass surface is a live backdrop blur that the window server recomposites whenever anything
+behind it changes. They are not free, and on a large display a workspace full of them is real GPU
+work. What is drawn, and how to stop drawing it:
+
+* *One ring per bordered window.* With `glass.borders.show-inactive = true` that is every visible
+  window; with it false, only the focused one (plus any window alerting).
+* *No glass at all when the accent covers the ring.* Setting `glass.borders.stroke-width` equal to
+  `glass.borders.width` draws a plain stroke and skips the blur entirely, which is the cheapest way
+  to keep borders.
+* *One strip per tab group.* `glass.tabs.style = 'flat'` paints the tints directly and skips the
+  blur there too.
+* *The drop preview* exists only while a drag is in flight.
+
+Panels are only handed a new view when something they render actually changed, so an idle
+workspace costs nothing beyond the blurs themselves.
+
 == Turning accordion off, and the spiral
 
 `glass.layout.accordion` says what an accordion container should become: `keep` (the default)

@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-struct GlassBorderView: View {
+struct GlassBorderView: View, Equatable {
     var cornerRadius: CGFloat
     var lineWidth: CGFloat
     /// Points of solid accent drawn along the ring's outer edge. The remaining width stays tinted
@@ -23,7 +23,12 @@ struct GlassBorderView: View {
 
     var body: some View {
         Group {
-            if #available(macOS 26.0, *) {
+            // A solid accent as wide as the ring hides the glass completely. Computing a live
+            // backdrop blur underneath it is invisible work the GPU repeats for every bordered
+            // window, forever, so the ring is drawn as a plain stroke instead.
+            if accent >= lineWidth {
+                outline.inset(by: lineWidth / 2).stroke(color, lineWidth: lineWidth)
+            } else if #available(macOS 26.0, *) {
                 // Liquid Glass refracts and blurs whatever the window server has composited behind
                 // the panel, which for an overlay is the desktop and the neighbouring app windows.
                 //
